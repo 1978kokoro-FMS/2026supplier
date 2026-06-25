@@ -24,6 +24,8 @@
         <option value="incomplete">미완료만</option>
         <option value="complete">완료만</option>
       </select>
+      <button type="button" id="refresh-btn">🔄 새로고침</button>
+      <span id="refresh-status" class="muted" style="font-size:12px; align-self:center;"></span>
     </div>
     <div style="overflow:auto; max-height:75vh; border:1px solid #e3e5e8; border-radius:10px;">
       <table id="tbl"><thead><tr>
@@ -50,6 +52,19 @@ document.getElementById('login-btn').addEventListener('click', async () => {
   renderSummary();
   renderTable();
 });
+
+document.getElementById('refresh-btn').addEventListener('click', refreshData);
+
+async function refreshData() {
+  const statusEl = document.getElementById('refresh-status');
+  statusEl.textContent = '불러오는 중...';
+  const res = await fetch('/api/admin/contracts', { headers: { 'x-admin-password': ADMIN_PW } });
+  if (!res.ok) { statusEl.textContent = '새로고침 실패'; return; }
+  rows = await res.json();
+  renderSummary();
+  renderTable();
+  statusEl.textContent = '방금 갱신됨 (' + new Date().toLocaleTimeString('ko-KR') + ')';
+}
 
 function initFilters() {
   const teams = [...new Set(rows.map(r => r.team).filter(Boolean))].sort();
