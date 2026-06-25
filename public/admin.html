@@ -27,7 +27,7 @@
     </div>
     <div style="overflow:auto; max-height:75vh; border:1px solid #e3e5e8; border-radius:10px;">
       <table id="tbl"><thead><tr>
-        <th>No</th><th>담당팀</th><th>사업명</th><th>업체명</th><th>작업유형</th>
+        <th>순번</th><th>No</th><th>담당팀</th><th>사업명</th><th>업체명</th><th>작업유형</th>
         <th>위험성평가</th><th>준수서약서</th><th>안전작업허가서</th><th>적격평가표</th><th>안전보건계획서</th>
         <th>링크</th>
       </tr></thead><tbody></tbody></table>
@@ -94,9 +94,10 @@ function renderTable() {
     .filter(r => !team || r.team === team)
     .filter(r => !vendor || (r.vendor_name || '').includes(vendor))
     .filter(r => !status || (status === 'complete' ? isComplete(r) : !isComplete(r)))
-    .forEach(r => {
+    .forEach((r, idx) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
+        <td>${idx + 1}</td>
         <td>${r.no ?? ''}</td>
         <td>${r.team ?? ''}</td>
         <td>${r.business_name ?? ''}</td>
