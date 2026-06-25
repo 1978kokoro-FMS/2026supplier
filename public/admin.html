@@ -42,6 +42,7 @@ document.getElementById('login-btn').addEventListener('click', async () => {
   ADMIN_PW = document.getElementById('pw').value;
   const res = await fetch('/api/admin/contracts', { headers: { 'x-admin-password': ADMIN_PW } });
   if (!res.ok) { alert('비밀번호가 올바르지 않습니다.'); return; }
+  localStorage.setItem('h1_admin_pw', ADMIN_PW);
   rows = await res.json();
   document.getElementById('login-box').style.display = 'none';
   document.getElementById('dash').style.display = 'block';
@@ -78,9 +79,14 @@ function renderSummary() {
   `;
 }
 
-function badge(ok, needed) {
+function badge(ok, needed, id, docType) {
   if (!needed) return '<span style="color:#bbb">해당없음</span>';
-  return ok ? '<span class="tag done">완료</span>' : '<span class="tag pending">대기</span>';
+  if (!ok) return '<span class="tag pending">대기</span>';
+  return `<span class="tag done">완료</span> <button class="ghost" onclick="printDoc('${id}','${docType}')">🖨️ 인쇄</button>`;
+}
+
+function printDoc(id, docType) {
+  window.open(`/print.html?id=${id}&doc=${docType}`, '_blank');
 }
 
 function renderTable() {
@@ -103,11 +109,11 @@ function renderTable() {
         <td>${r.business_name ?? ''}</td>
         <td>${r.vendor_name ?? ''}</td>
         <td>${r.work_type ?? ''}</td>
-        <td>${badge(!!r.risk_assessment_submitted_at, r.needs_risk_assessment)}</td>
-        <td>${badge(!!r.pledge_submitted_at, r.needs_pledge)}</td>
-        <td>${badge(!!r.permit_submitted_at, r.needs_permit)}</td>
-        <td>${badge(!!r.vendor_eval_submitted_at, r.needs_vendor_eval)}</td>
-        <td>${badge(!!r.safety_plan_submitted_at, r.needs_safety_plan)}</td>
+        <td>${badge(!!r.risk_assessment_submitted_at, r.needs_risk_assessment, r.id, 'risk')}</td>
+        <td>${badge(!!r.pledge_submitted_at, r.needs_pledge, r.id, 'pledge')}</td>
+        <td>${badge(!!r.permit_submitted_at, r.needs_permit, r.id, 'permit')}</td>
+        <td>${badge(!!r.vendor_eval_submitted_at, r.needs_vendor_eval, r.id, 'eval')}</td>
+        <td>${badge(!!r.safety_plan_submitted_at, r.needs_safety_plan, r.id, 'plan')}</td>
         <td>
           <button class="ghost" onclick="copyLink('vendor','${r.vendor_token}')">업체</button>
           <button class="ghost" onclick="copyLink('team','${r.team_token}')">팀</button>

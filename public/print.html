@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>서류 인쇄</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Malgun Gothic', sans-serif; color: #111; margin: 0; background: #f4f5f7; }
+  .toolbar { background: #fff; border-bottom: 1px solid #e3e5e8; padding: 10px 16px; display: flex; gap: 10px; align-items: center; }
+  .toolbar button { background: #2563eb; color: #fff; border: none; border-radius: 7px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .sheet { max-width: 760px; margin: 20px auto; background: #fff; padding: 28px 32px; box-shadow: 0 1px 6px rgba(0,0,0,.08); }
+  .sheet h1 { text-align: center; font-size: 13px; margin: 0 0 2px; }
+  .sheet h2 { text-align: center; font-size: 18px; border-bottom: 2px solid #222; padding-bottom: 8px; margin: 0 0 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 10px; }
+  th, td { border: 1px solid #999; padding: 5px 8px; text-align: left; }
+  th { background: #f0f1f3; }
+  .label-cell { background: #f7f7f7; font-weight: 600; width: 130px; }
+  .sig-cell { height: 60px; text-align: center; vertical-align: middle; }
+  .sig-cell img { height: 50px; }
+  .section-title { font-weight: 700; font-size: 13px; margin: 14px 0 6px; }
+  .pledge-text { font-size: 12px; line-height: 1.7; }
+  .pledge-text ol { padding-left: 18px; }
+  .center { text-align: center; }
+  .muted { color: #999; font-size: 12px; }
+  iframe.doc-frame { width: 100%; height: 80vh; border: 1px solid #ccc; }
+  @media print {
+    body { background: #fff; }
+    .toolbar { display: none; }
+    .sheet { box-shadow: none; margin: 0; max-width: none; }
+  }
+</style>
+</head>
+<body>
+<div class="toolbar no-print">
+  <button onclick="window.print()">🖨️ 인쇄</button>
+  <span class="muted" id="doc-title"></span>
+</div>
+<div class="sheet" id="sheet">불러오는 중...</div>
+<script>
+const params = new URLSearchParams(location.search);
+const id = params.get('id');
+const docType = params.get('doc');
+const pw = params.get('pw') || localStorage.getItem('h1_admin_pw') || '';
+
+const DOC_LABEL = {
+  risk: '위험성평가 실시 보고서',
+  pledge: '안전작업 준수서약서',
+  permit: '안전작업허가서',
+  eval: '적격수급업체 평가표',
+  plan: '안전보건관리계획서',
+};
+
+async function load() {
+  document.getElementById('doc-title').textContent = DOC_LABEL[docType] || '';
+  const res = await fetch(`/api/admin/contracts/${id}`, { headers: { 'x-admin-password': pw } });
+  if (!res.ok) { document.getElementById('sheet').textContent = '불러오기 실패. 관리자 비밀번호를 확인해주세요.'; return; }
+  const c = await res.json();
+  render(c);
+}
+
+function fileFrame(url) {
+  if (!url) return '<div class="muted">첨부파일 없음</div>';
+  return `<a href="${url}" target="_blank">파일 새 창에서 열기</a><br><iframe class="doc-frame" src="${url}"></iframe>`;
+}
+
+function render(c) {
+  const el = document.getElementById('sheet');
+  if (docType === 'risk') return renderRisk(el, c);
+  if (docType === 'pledge') return renderPledge(el, c);
+  if (docType === 'permit') return renderPermit(el, c);
+  if (docType === 'eval') return renderEval(el, c);
+  if (docType === 'plan') return renderPlan(el, c);
+  el.textContent = '알 수 없는 서류 종류입니다.';
+}
+
+function renderRisk(el, c) {
+  const d = c.risk_assessment_data;
+  if (!d || d.mode === 'file') {
+    el.innerHTML = `
+      <h2>위험성평가 실시서류</h2>
+      <table><tr><td class="label-cell">사업명</td><td>${c.business_name || ''}</td></tr>
+      <tr><td class="label-cell">업체명</td><td>${c.vendor_name || ''}</td></tr>
+      <tr><td class="label-cell">실시일자</td><td>${d?.date || ''}</td></tr></table>
+      <div class="section-title">위험요인 및 대책</div>
+      <div>${(d?.summary || '').replace(/\n/g, '<br>') || '<span class="muted">입력 없음</span>'}</div>
+      <div class="section-title">첨부파일</div>
+      ${fileFrame(c.risk_assessment_file)}
+    `;
+    return;
+  }
+  el.innerHTML = `
+    <h2>위험성평가 실시 보고서</h2>
+    <table>
+      <tr><td class="label-cell">사업명</td><td>${c.business_name || ''}</td></tr>
+      <tr><td class="label-cell">업체명</td><td>${c.vendor_name || ''}</td></tr>
+      <tr><td class="label-cell">작성자</td><td>${d.assessor_name || ''} ${d.assessor_contact ? '(' + d.assessor_contact + ')' : ''}</td></tr>
+    </table>
+    <div class="section-title">위험요인별 평가</div>
+    <table>
+      <thead><tr><th>위험요인</th><th>빈도</th><th>강도</th><th>점수</th><th>위험도</th><th>감소대책</th></tr></thead>
+      <tbody>
+        ${(d.hazards || []).map(h => `<tr><td>${h.hazard}</td><td class="center">${h.freq}</td><td class="center">${h.severity}</td><td class="center">${h.score}</td><td class="center">${h.level}</td><td>${h.measure || ''}</td></tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="section-title">보호구</div>
+    <div>${(d.ppe || []).join(', ') || '<span class="muted">없음</span>'}</div>
+    <div class="section-title">작성자 서명</div>
+    <table><tr><td class="sig-cell">${c.risk_assessment_signature ? `<img src="${c.risk_assessment_signature}">` : '<span class="muted">서명 없음</span>'}</td></tr></table>
+  `;
+}
+
+function renderPledge(el, c) {
+  el.innerHTML = `
+    <h2>안전작업준수서약서</h2>
+    <table>
+      <tr><td class="label-cell">공 사 명</td><td>${c.business_name || ''} ${c.memo ? '(' + c.memo + ')' : ''}</td></tr>
+      <tr><td class="label-cell">업체명</td><td>${c.pledge_company_name || c.vendor_name || ''}</td></tr>
+      <tr><td class="label-cell">공사책임자</td><td>${c.pledge_responsible_person || ''}</td></tr>
+    </table>
+    <div class="pledge-text">
+      <p>의왕도시공사 내에서 공사 시 위험작업(화기작업, 밀폐공간작업, 고소작업, 전기작업, 기타 안전보건상 위험하다고 판단되는 작업)을 진행하는 공사업체 및 책임자는 아래와 같은 사항을 준수하며 공사에 임하도록 한다.</p>
+      <ol>
+        <li>의왕도시공사 내에서 유해·위험작업을 진행하는 공사업체와 공사책임자(현장대리인)는 공사에 관한 안전보건관리규정을 준수하며, 공사에 임하도록 한다.</li>
+        <li>원청(의왕도시공사)에서 요구하는 서류는 지체 없이 제출한다.</li>
+        <li>원청(의왕도시공사)에서 실시하는 현장 점검 및 개선 요구 시 적극적인 협조를 한다.</li>
+        <li>의왕도시공사 사업장내에서 작업 시 안전작업허가서에 명시된 안전보호구를 공사책임자는 근로자에게 지급 및 착용시킬 의무가 있다.</li>
+        <li>원청(의왕도시공사)에서 안전작업허가서 절차 및 안전보건관리규정을 준수하지 않아 부득이한 작업중지 지시에 공사업체는 동의한다.</li>
+        <li>의왕도시공사 사업장내에서 작업 중 안전작업허가서 기준 및 안전보건관리규정을 준수하지 않아 발생되는 모든 안전사고는 공사업체 및 책임자가 책임을 진다.</li>
+      </ol>
+      <p class="center"><b>위 사항에 동의하며 미 준수 시 이에 따른 민·형사상의 책임을 질 것을 확약합니다.</b></p>
+    </div>
+    <table><thead><tr><th>업체명</th><th>책임자</th><th>서명</th></tr></thead>
+    <tbody><tr><td>${c.pledge_company_name || ''}</td><td>${c.pledge_responsible_person || ''}</td>
+    <td class="sig-cell">${c.pledge_signature ? `<img src="${c.pledge_signature}">` : '<span class="muted">서명 없음</span>'}</td></tr></tbody></table>
+  `;
+}
+
+function renderPermit(el, c) {
+  const d = c.permit_data;
+  if (!d || d.mode === 'file') {
+    el.innerHTML = `
+      <h2>안전작업허가서</h2>
+      <table><tr><td class="label-cell">사업명</td><td>${c.business_name || ''}</td></tr>
+      <tr><td class="label-cell">업체명</td><td>${c.vendor_name || ''}</td></tr>
+      <tr><td class="label-cell">작업기간</td><td>${d?.period || ''}</td></tr></table>
+      <div class="section-title">첨부파일</div>
+      ${fileFrame(c.permit_file)}
+    `;
+    return;
+  }
+  el.innerHTML = `
+    <h2>안전작업허가서</h2>
+    <table>
+      <tr><td class="label-cell">수급업체명</td><td>${d.company_name || ''}</td></tr>
+      <tr><td class="label-cell">작업자</td><td>${d.worker_name || ''} ${d.worker_phone ? '(' + d.worker_phone + ')' : ''}</td></tr>
+      <tr><td class="label-cell">작업유형</td><td>${d.work_type || ''}</td></tr>
+      <tr><td class="label-cell">작업위치</td><td>${d.work_location || ''}</td></tr>
+      <tr><td class="label-cell">작업일자/시간</td><td>${d.work_date || ''} ${d.work_start_time || ''}</td></tr>
+      <tr><td class="label-cell">특이사항</td><td>${d.special_notes || ''}</td></tr>
+    </table>
+    <div class="section-title">작업 전 안전확인</div>
+    <ul>${(d.risk_checks || []).map(r => `<li>☑ ${r}</li>`).join('') || '<li class="muted">체크 항목 없음</li>'}</ul>
+    <div class="section-title">서명</div>
+    <table>
+      <thead><tr><th>직책</th><th>이름</th><th>서명</th></tr></thead>
+      <tbody>
+        <tr><td>관리감독자</td><td>${d.supervisor_name || ''}</td><td class="sig-cell">${c.permit_supervisor_signature ? `<img src="${c.permit_supervisor_signature}">` : ''}</td></tr>
+        <tr><td>시설담당자</td><td>${d.facility_name || ''}</td><td class="sig-cell">${c.permit_facility_signature ? `<img src="${c.permit_facility_signature}">` : ''}</td></tr>
+        <tr><td>작업자</td><td>${d.worker_name || ''}</td><td class="sig-cell">${c.permit_worker_signature ? `<img src="${c.permit_worker_signature}">` : ''}</td></tr>
+      </tbody>
+    </table>
+  `;
+}
+
+function renderEval(el, c) {
+  const d = c.vendor_eval_data || {};
+  const labels = { a1: '1. 일반원칙', a2: '2. 계획수립', a3: '3. 역할 및 책임', b4: '4. 위험성평가', b5: '5. 안전점검', b6: '6. 이행확인', b7: '7. 교육 및 기록', b8: '8. 안전작업허가', c9: '9. 신호 및 연락체계', c10: '10. 위험물질 및 설비', c11: '11. 비상대책', d12: '12. 산업재해현황' };
+  el.innerHTML = `
+    <h2>적격수급업체 평가표 (표준)</h2>
+    <table>
+      <tr><td class="label-cell">사업명</td><td>${c.business_name || ''}</td></tr>
+      <tr><td class="label-cell">업체명</td><td>${c.vendor_name || ''}</td></tr>
+      <tr><td class="label-cell">평가일</td><td>${d.evaluated_at || ''}</td></tr>
+      <tr><td class="label-cell">평가자</td><td>${d.evaluator_name || ''} ${d.evaluator_dept ? '(' + d.evaluator_dept + ')' : ''}</td></tr>
+    </table>
+    <table>
+      <thead><tr><th>항목</th><th>평가</th><th>점수</th></tr></thead>
+      <tbody>
+        ${Object.keys(labels).map(k => `<tr><td>${labels[k]}</td><td class="center">${d.levels?.[k] || ''}</td><td class="center">${d.scores?.[k] ?? ''}</td></tr>`).join('')}
+      </tbody>
+    </table>
+    <table><tr><td class="label-cell">총점</td><td>${d.total_score ?? ''} / 100점</td></tr>
+    <tr><td class="label-cell">등급</td><td><b>${d.grade || ''}</b></td></tr></table>
+    <div class="section-title">종합 의견</div>
+    <div>${d.opinion || '<span class="muted">없음</span>'}</div>
+  `;
+}
+
+function renderPlan(el, c) {
+  el.innerHTML = `
+    <h2>안전보건관리계획서</h2>
+    <table><tr><td class="label-cell">사업명</td><td>${c.business_name || ''}</td></tr>
+    <tr><td class="label-cell">업체명</td><td>${c.vendor_name || ''}</td></tr></table>
+    <div class="section-title">첨부파일</div>
+    ${fileFrame(c.safety_plan_file)}
+  `;
+}
+
+load();
+</script>
+</body>
+</html>

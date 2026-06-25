@@ -174,4 +174,14 @@ app.get('/api/admin/contracts', requireAdmin, async (req, res) => {
   res.json(data);
 });
 
+app.get('/api/admin/contracts/:id', requireAdmin, async (req, res) => {
+  const { data, error } = await supabase
+    .from('h1_2026_contracts')
+    .select('*')
+    .eq('id', req.params.id)
+    .single();
+  if (error || !data) return res.status(404).json({ error: '찾을 수 없습니다.' });
+  res.json(data);
+});
+
 module.exports = app;
