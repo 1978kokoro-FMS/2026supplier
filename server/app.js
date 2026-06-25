@@ -114,12 +114,15 @@ app.post('/api/team/:token/vendor-eval', async (req, res) => {
     .single();
   if (!row) return res.status(404).json({ error: '유효하지 않은 링크입니다.' });
 
+  const update = {
+    vendor_eval_data: req.body.data || null,
+    vendor_eval_submitted_at: new Date().toISOString(),
+  };
+  if (req.body.signature) update.vendor_eval_signature = req.body.signature;
+
   const { error } = await supabase
     .from('h1_2026_contracts')
-    .update({
-      vendor_eval_data: req.body.data || null,
-      vendor_eval_submitted_at: new Date().toISOString(),
-    })
+    .update(update)
     .eq('id', row.id);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ ok: true });

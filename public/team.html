@@ -84,7 +84,7 @@ let contract = null;
 let permitMode = 'direct';
 const riskChecked = new Set();
 const evalLevels = {};
-let supervisorPad = null, facilityPad = null, workerPad = null;
+let supervisorPad = null, facilityPad = null, workerPad = null, evaluatorPad = null;
 
 async function load() {
   if (!token) { showError('잘못된 링크입니다.'); return; }
@@ -145,6 +145,11 @@ function render() {
         <label>종합 의견 (선택)</label>
         <textarea id="eval-opinion" rows="3"></textarea>
       </div>
+      <div class="sig-block">
+        <label>평가자 서명 <span class="req">*</span></label>
+        <canvas class="sig" id="sig-evaluator" width="600" height="160"></canvas>
+        <button type="button" class="ghost" id="eval-sig-clear">서명 지우기</button>
+      </div>
       <button type="button" id="eval-submit-btn">평가표 제출</button>
     </div>` : ''}
   `;
@@ -156,6 +161,8 @@ function render() {
   }
   if (contract.needs_vendor_eval) {
     renderEvalSections();
+    evaluatorPad = createSignaturePad(document.getElementById('sig-evaluator'));
+    document.getElementById('eval-sig-clear').addEventListener('click', () => evaluatorPad.clear());
     document.getElementById('eval-submit-btn').addEventListener('click', submitEval);
   }
 }
@@ -343,6 +350,7 @@ async function submitEval() {
   const name = document.getElementById('eval-name').value.trim();
   if (!name) { alert('평가자 이름을 입력해주세요.'); return; }
   if (!allSelected) { alert('모든 항목을 평가해주세요.'); return; }
+  if (evaluatorPad.isEmpty()) { alert('평가자 서명을 해주세요.'); return; }
 
   const scores = {};
   ALL_ITEMS.forEach(i => { scores[i.key] = i[evalLevels[i.key]]; });
@@ -365,6 +373,7 @@ async function submitEval() {
         grade,
         opinion: document.getElementById('eval-opinion').value,
       },
+      signature: evaluatorPad.toDataURL(),
     }),
   });
   if (res.ok) { alert('평가표가 제출되었습니다.'); location.reload(); }

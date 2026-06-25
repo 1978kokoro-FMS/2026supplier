@@ -194,6 +194,8 @@ function renderEval(el, c) {
     <tr><td class="label-cell">등급</td><td><b>${d.grade || ''}</b></td></tr></table>
     <div class="section-title">종합 의견</div>
     <div>${d.opinion || '<span class="muted">없음</span>'}</div>
+    <div class="section-title">평가자 서명</div>
+    <table><tr><td>${d.evaluator_name || ''}</td><td class="sig-cell">${c.vendor_eval_signature ? `<img src="${c.vendor_eval_signature}">` : '<span class="muted">서명 없음</span>'}</td></tr></table>
   `;
 }
 
