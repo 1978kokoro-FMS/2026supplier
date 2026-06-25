@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>제출현황 대시보드 - 2026년 상반기</title>
+<link rel="stylesheet" href="/style.css">
+<style>.wrap { max-width: 1400px; } .toolbar { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; } .toolbar input, .toolbar select { padding:7px 10px; border:1px solid #d8dadd; border-radius:7px; font-size:13px; } .summary { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; } .summary div { background:#fff; border:1px solid #e3e5e8; border-radius:10px; padding:10px 16px; font-size:13px; } .summary b { font-size:18px; display:block; }</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>2026년 상반기 제출현황 대시보드</h1>
+  <div id="login-box" class="card">
+    <div class="row"><label>관리자 비밀번호</label><input type="text" id="pw" placeholder="비밀번호 입력"></div>
+    <button id="login-btn">확인</button>
+  </div>
+  <div id="dash" style="display:none">
+    <div class="summary" id="summary"></div>
+    <div class="toolbar">
+      <select id="filter-team"><option value="">전체 담당팀</option></select>
+      <input type="text" id="filter-vendor" placeholder="업체명 검색">
+      <select id="filter-status">
+        <option value="">전체 상태</option>
+        <option value="incomplete">미완료만</option>
+        <option value="complete">완료만</option>
+      </select>
+    </div>
+    <div style="overflow:auto; max-height:75vh; border:1px solid #e3e5e8; border-radius:10px;">
+      <table id="tbl"><thead><tr>
+        <th>No</th><th>담당팀</th><th>사업명</th><th>업체명</th><th>작업유형</th>
+        <th>위험성평가</th><th>준수서약서</th><th>안전작업허가서</th><th>적격평가표</th><th>안전보건계획서</th>
+        <th>링크</th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+</div>
+<script>
+let ADMIN_PW = '';
+let rows = [];
+
+document.getElementById('login-btn').addEventListener('click', async () => {
+  ADMIN_PW = document.getElementById('pw').value;
+  const res = await fetch('/api/admin/contracts', { headers: { 'x-admin-password': ADMIN_PW } });
+  if (!res.ok) { alert('비밀번호가 올바르지 않습니다.'); return; }
+  rows = await res.json();
+  document.getElementById('login-box').style.display = 'none';
+  document.getElementById('dash').style.display = 'block';
+  initFilters();
+  renderSummary();
+  renderTable();
+});
+
+function initFilters() {
+  const teams = [...new Set(rows.map(r => r.team).filter(Boolean))].sort();
+  const sel = document.getElementById('filter-team');
+  teams.forEach(t => sel.innerHTML += `<option value="${t}">${t}</option>`);
+  ['filter-team', 'filter-vendor', 'filter-status'].forEach(id =>
+    document.getElementById(id).addEventListener('input', renderTable));
+}
+
+function isComplete(r) {
+  const checks = [];
+  if (r.needs_risk_assessment) checks.push(!!r.risk_assessment_submitted_at);
+  if (r.needs_pledge) checks.push(!!r.pledge_submitted_at);
+  if (r.needs_permit) checks.push(!!r.permit_submitted_at);
+  if (r.needs_vendor_eval) checks.push(!!r.vendor_eval_submitted_at);
+  if (r.needs_safety_plan) checks.push(!!r.safety_plan_submitted_at);
+  return checks.length > 0 && checks.every(Boolean);
+}
+
+function renderSummary() {
+  const total = rows.length;
+  const complete = rows.filter(isComplete).length;
+  document.getElementById('summary').innerHTML = `
+    <div><b>${total}</b>전체 작업</div>
+    <div><b>${complete}</b>제출 완료</div>
+    <div><b>${total - complete}</b>미완료</div>
+  `;
+}
+
+function badge(ok, needed) {
+  if (!needed) return '<span style="color:#bbb">해당없음</span>';
+  return ok ? '<span class="tag done">완료</span>' : '<span class="tag pending">대기</span>';
+}
+
+function renderTable() {
+  const team = document.getElementById('filter-team').value;
+  const vendor = document.getElementById('filter-vendor').value.trim();
+  const status = document.getElementById('filter-status').value;
+  const tbody = document.querySelector('#tbl tbody');
+  tbody.innerHTML = '';
+
+  rows
+    .filter(r => !team || r.team === team)
+    .filter(r => !vendor || (r.vendor_name || '').includes(vendor))
+    .filter(r => !status || (status === 'complete' ? isComplete(r) : !isComplete(r)))
+    .forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.no ?? ''}</td>
+        <td>${r.team ?? ''}</td>
+        <td>${r.business_name ?? ''}</td>
+        <td>${r.vendor_name ?? ''}</td>
+        <td>${r.work_type ?? ''}</td>
+        <td>${badge(!!r.risk_assessment_submitted_at, r.needs_risk_assessment)}</td>
+        <td>${badge(!!r.pledge_submitted_at, r.needs_pledge)}</td>
+        <td>${badge(!!r.permit_submitted_at, r.needs_permit)}</td>
+        <td>${badge(!!r.vendor_eval_submitted_at, r.needs_vendor_eval)}</td>
+        <td>${badge(!!r.safety_plan_submitted_at, r.needs_safety_plan)}</td>
+        <td>
+          <button class="ghost" onclick="copyLink('vendor','${r.vendor_token}')">업체</button>
+          <button class="ghost" onclick="copyLink('team','${r.team_token}')">팀</button>
+          <button class="ghost" onclick="copyLink('finance','${r.finance_token}')">재무</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+}
+
+function copyLink(type, token) {
+  const url = `${location.origin}/${type}.html?t=${token}`;
+  navigator.clipboard.writeText(url);
+  alert('링크가 복사되었습니다:\n' + url);
+}
+</script>
+</body>
+</html>

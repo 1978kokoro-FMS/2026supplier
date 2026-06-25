@@ -1,0 +1,19 @@
+{
+  "name": "h1-2026-doc-collect",
+  "version": "1.0.0",
+  "description": "2026년 상반기 안전관리 서류 소급수집 도구",
+  "main": "server/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/index.js",
+    "import": "node scripts/import-excel.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "nanoid": "^3.3.7",
+    "xlsx": "^0.18.5"
+  }
+}

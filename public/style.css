@@ -1,0 +1,42 @@
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  background: #f4f5f7;
+  color: #222;
+}
+.wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px 60px; }
+h1 { font-size: 18px; margin: 0 0 4px; }
+.sub { color: #777; font-size: 13px; margin-bottom: 20px; }
+.card {
+  background: #fff;
+  border: 1px solid #e3e5e8;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.card h2 { font-size: 15px; margin: 0 0 12px; }
+.row { margin-bottom: 12px; }
+.row label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.row input[type=text], .row input[type=file], .row textarea {
+  width: 100%; padding: 9px 10px; border: 1px solid #d8dadd; border-radius: 8px; font-size: 14px;
+}
+.req { color: #e0473e; }
+canvas.sig { border: 2px dashed #ccc; border-radius: 10px; width: 100%; height: 150px; touch-action: none; background: #fff; }
+button {
+  background: #2563eb; color: #fff; border: none; border-radius: 8px;
+  padding: 11px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+button.ghost { background: none; color: #999; font-weight: 400; font-size: 12px; padding: 4px; text-decoration: underline; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.msg { font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 12px; }
+.msg.error { background: #fef0ef; color: #c0392b; }
+.msg.ok { background: #effaf0; color: #1e7e34; }
+.info { background: #eef4ff; border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 1.6; margin-bottom: 16px; }
+.info b { font-weight: 700; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { border: 1px solid #e3e5e8; padding: 6px 8px; text-align: left; white-space: nowrap; }
+th { background: #f0f1f3; position: sticky; top: 0; }
+.tag { display: inline-block; padding: 2px 7px; border-radius: 5px; font-size: 11px; }
+.tag.done { background: #e6f6ea; color: #1e7e34; }
+.tag.pending { background: #fdeeee; color: #c0392b; }

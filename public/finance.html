@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>재무회계팀 서류 제출 - 2026년 상반기</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>2026년 상반기 안전관리 서류 제출 (재무회계팀)</h1>
+  <div class="sub">안전보건관리계획서</div>
+  <div id="loading" class="msg">불러오는 중...</div>
+  <div id="content" style="display:none"></div>
+</div>
+<script>
+const token = new URLSearchParams(location.search).get('t');
+
+async function load() {
+  if (!token) { showError('잘못된 링크입니다.'); return; }
+  const res = await fetch(`/api/finance/${token}`);
+  if (!res.ok) { showError('유효하지 않은 링크입니다. 발급받은 링크를 다시 확인해주세요.'); return; }
+  const contract = await res.json();
+  render(contract);
+}
+
+function showError(msg) {
+  document.getElementById('loading').textContent = msg;
+  document.getElementById('loading').className = 'msg error';
+}
+
+function render(contract) {
+  document.getElementById('loading').style.display = 'none';
+  const c = document.getElementById('content');
+  c.style.display = 'block';
+  const done = !!contract.safety_plan_submitted_at;
+
+  c.innerHTML = `
+    <div class="info">
+      <b>${contract.business_name || ''}</b> / 업체: <b>${contract.vendor_name || ''}</b> / 담당팀: <b>${contract.team || ''}</b><br>
+      작업유형: ${contract.work_type || '-'} · 계약일자: ${contract.contract_date || '-'}
+    </div>
+    <div class="card">
+      <h2>안전보건관리계획서 ${done ? '<span class="tag done">제출완료</span>' : '<span class="tag pending">미제출</span>'}</h2>
+      <form id="plan-form">
+        <div class="row">
+          <label>안전보건관리계획서 파일 첨부 <span class="req">*</span></label>
+          <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.hwp,.hwpx,.doc,.docx">
+        </div>
+        <button type="submit">제출</button>
+      </form>
+    </div>
+  `;
+  document.getElementById('plan-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const file = e.target.file.files[0];
+    if (!file) { alert('파일을 첨부해주세요.'); return; }
+    const fd = new FormData();
+    fd.append('file', file);
+    const btn = e.target.querySelector('button');
+    btn.disabled = true; btn.textContent = '제출 중...';
+    const res = await fetch(`/api/finance/${token}/safety-plan`, { method: 'POST', body: fd });
+    if (res.ok) { alert('안전보건관리계획서가 제출되었습니다.'); location.reload(); }
+    else { alert('제출에 실패했습니다.'); btn.disabled = false; btn.textContent = '제출'; }
+  });
+}
+
+load();
+</script>
+</body>
+</html>

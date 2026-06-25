@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>업체 서류 제출 - 2026년 상반기</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+.mode-toggle { display: flex; gap: 8px; margin-bottom: 14px; }
+.mode-toggle button { flex: 1; background: #f0f1f3; color: #555; }
+.mode-toggle button.active { background: #2563eb; color: #fff; }
+.hazard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.hazard-chip { border: 1px solid #d8dadd; border-radius: 8px; padding: 8px 10px; font-size: 13px; cursor: pointer; text-align: center; }
+.hazard-chip.active { background: #fff3eb; border-color: #f0a868; color: #b9560a; font-weight: 600; }
+.hazard-box { border: 1px solid #e3e5e8; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+.hazard-box .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 600; font-size: 13px; }
+.level-row { display: flex; gap: 6px; margin-bottom: 8px; }
+.level-row button { flex: 1; background: #fff; color: #555; border: 1px solid #d8dadd; padding: 6px; font-size: 12px; font-weight: 600; }
+.level-row button.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+.risk-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
+.risk-low { background: #e6f6ea; color: #1e7e34; }
+.risk-mid { background: #fff6db; color: #a07300; }
+.risk-high { background: #fdeeee; color: #c0392b; }
+.pledge-box { background: #fafbfc; border: 1px solid #e3e5e8; border-radius: 10px; padding: 14px; font-size: 13px; line-height: 1.7; color: #333; margin-bottom: 14px; }
+.pledge-box h3 { text-align: center; font-size: 14px; margin: 0 0 10px; }
+.pledge-box ol { margin: 8px 0; padding-left: 18px; }
+.pledge-box li { margin-bottom: 6px; }
+.agree-box { display: flex; gap: 10px; background: #eef4ff; border: 1px solid #cfe0fb; border-radius: 10px; padding: 12px; margin-bottom: 14px; align-items: flex-start; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>2026년 상반기 안전관리 서류 제출</h1>
+  <div class="sub">위험성평가 실시서류 / 안전작업 준수서약서</div>
+  <div id="loading" class="msg">불러오는 중...</div>
+  <div id="content" style="display:none"></div>
+</div>
+<script src="/signature.js"></script>
+<script>
+const HAZARDS = ['미끄러짐·넘어짐', '떨어짐(추락)', '끼임·충돌', '근골격계 부담', '유해화학물질 노출', '화재'];
+const PPES = ['안전화', '장갑', '마스크', '보안경', '방수복', '해당없음'];
+const LEVELS = ['상', '중', '하'];
+const LEVEL_V = { 상: 3, 중: 2, 하: 1 };
+
+function riskInfo(freq, severity) {
+  const score = LEVEL_V[freq] * LEVEL_V[severity];
+  if (score >= 7) return { score, text: '고위험', cls: 'risk-high' };
+  if (score >= 4) return { score, text: '중위험', cls: 'risk-mid' };
+  return { score, text: '저위험', cls: 'risk-low' };
+}
+
+const token = new URLSearchParams(location.search).get('t');
+let contract = null;
+let riskMode = 'direct'; // 'file' | 'direct'
+const selectedHazards = new Set();
+const hazardEval = {}; // h -> { freq, severity, measure }
+const selectedPpe = new Set();
+let riskPad = null;
+let pledgePad = null;
+
+async function load() {
+  if (!token) { showError('잘못된 링크입니다.'); return; }
+  const res = await fetch(`/api/vendor/${token}`);
+  if (!res.ok) { showError('유효하지 않은 링크입니다. 발급받은 링크를 다시 확인해주세요.'); return; }
+  contract = await res.json();
+  render();
+}
+
+function showError(msg) {
+  document.getElementById('loading').textContent = msg;
+  document.getElementById('loading').className = 'msg error';
+}
+
+function render() {
+  document.getElementById('loading').style.display = 'none';
+  const c = document.getElementById('content');
+  c.style.display = 'block';
+
+  const riskDone = !!contract.risk_assessment_submitted_at;
+  const pledgeDone = !!contract.pledge_submitted_at;
+
+  c.innerHTML = `
+    <div class="info">
+      <b>${contract.business_name || ''}</b> / 업체: <b>${contract.vendor_name || ''}</b><br>
+      작업유형: ${contract.work_type || '-'} · 계약일자: ${contract.contract_date || '-'}
+    </div>
+
+    ${contract.needs_risk_assessment ? `
+    <div class="card" id="risk-card">
+      <h2>1. 위험성평가 실시서류 ${riskDone ? '<span class="tag done">제출완료</span>' : '<span class="tag pending">미제출</span>'}</h2>
+      <div class="mode-toggle">
+        <button type="button" id="mode-file">파일이 있어요</button>
+        <button type="button" id="mode-direct">직접 작성할게요</button>
+      </div>
+      <div id="risk-file-area"></div>
+      <div id="risk-direct-area"></div>
+    </div>` : ''}
+
+    ${contract.needs_pledge ? `
+    <div class="card" id="pledge-card">
+      <h2>2. 안전작업 준수서약서 ${pledgeDone ? '<span class="tag done">제출완료</span>' : '<span class="tag pending">미제출</span>'}</h2>
+      <div class="pledge-box">
+        <h3>안전작업준수서약서</h3>
+        <p><b>공 사 명:</b> ${contract.business_name || ''} (${contract.memo || ''})</p>
+        <p>의왕도시공사 내에서 공사 시 위험작업(화기작업, 밀폐공간작업, 고소작업, 전기작업, 기타 안전보건상 위험하다고 판단되는 작업)을 진행하는 공사업체 및 책임자는 아래와 같은 사항을 준수하며 공사에 임하도록 한다.</p>
+        <ol>
+          <li>의왕도시공사 내에서 유해·위험작업을 진행하는 공사업체와 공사책임자(현장대리인)는 공사에 관한 안전보건관리규정을 준수하며, 공사에 임하도록 한다.</li>
+          <li>원청(의왕도시공사)에서 요구하는 서류는 지체 없이 제출한다.</li>
+          <li>원청(의왕도시공사)에서 실시하는 현장 점검 및 개선 요구 시 적극적인 협조를 한다.</li>
+          <li>의왕도시공사 사업장내에서 작업 시 안전작업허가서에 명시된 안전보호구를 공사책임자는 근로자에게 지급 및 착용시킬 의무가 있다.</li>
+          <li>원청(의왕도시공사)에서 안전작업허가서 절차 및 안전보건관리규정을 준수하지 않아 부득이한 작업중지 지시에 공사업체는 동의한다.</li>
+          <li>의왕도시공사 사업장내에서 작업 중 안전작업허가서 기준 및 안전보건관리규정을 준수하지 않아 발생되는 모든 안전사고는 공사업체 및 책임자가 책임을 진다.</li>
+        </ol>
+        <p style="text-align:center; font-weight:600; border-top:1px solid #e3e5e8; padding-top:10px;">위 사항에 동의하며 미 준수 시 이에 따른 민·형사상의 책임을 질 것을 확약합니다.</p>
+      </div>
+      <form id="pledge-form">
+        <div class="row">
+          <label>업체명 <span class="req">*</span></label>
+          <input type="text" name="company_name" value="${contract.pledge_company_name || contract.vendor_name || ''}" required>
+        </div>
+        <div class="row">
+          <label>공사(작업) 책임자 <span class="req">*</span></label>
+          <input type="text" name="responsible_person" value="${contract.pledge_responsible_person || ''}" required>
+        </div>
+        <div class="row">
+          <label>서명 <span class="req">*</span> <span style="color:#999;font-weight:400">(마우스 또는 손가락으로 서명)</span></label>
+          <canvas class="sig" id="pledge-sig-canvas" width="600" height="220"></canvas>
+          <button type="button" class="ghost" id="pledge-sig-clear">서명 지우기</button>
+        </div>
+        <label class="agree-box">
+          <input type="checkbox" id="pledge-agree" style="margin-top:3px;">
+          <span>위 안전작업 준수서약서의 모든 내용을 확인하였으며, 이를 성실히 준수할 것을 서약합니다.</span>
+        </label>
+        <button type="submit">준수서약서 제출</button>
+      </form>
+    </div>` : ''}
+  `;
+
+  if (contract.needs_risk_assessment) {
+    document.getElementById('mode-file').addEventListener('click', () => setRiskMode('file'));
+    document.getElementById('mode-direct').addEventListener('click', () => setRiskMode('direct'));
+    setRiskMode('direct');
+  }
+  if (contract.needs_pledge) {
+    const canvas = document.getElementById('pledge-sig-canvas');
+    pledgePad = createSignaturePad(canvas);
+    document.getElementById('pledge-sig-clear').addEventListener('click', () => pledgePad.clear());
+    document.getElementById('pledge-form').addEventListener('submit', submitPledge);
+  }
+}
+
+function setRiskMode(mode) {
+  riskMode = mode;
+  document.getElementById('mode-file').classList.toggle('active', mode === 'file');
+  document.getElementById('mode-direct').classList.toggle('active', mode === 'direct');
+  document.getElementById('risk-file-area').style.display = mode === 'file' ? 'block' : 'none';
+  document.getElementById('risk-direct-area').style.display = mode === 'direct' ? 'block' : 'none';
+  if (mode === 'file' && !document.getElementById('risk-form')) renderRiskFile();
+  if (mode === 'direct' && !document.getElementById('risk-direct-form')) renderRiskDirect();
+}
+
+function renderRiskFile() {
+  document.getElementById('risk-file-area').innerHTML = `
+    <form id="risk-form">
+      <div class="row">
+        <label>위험성평가 실시일자</label>
+        <input type="text" name="date" placeholder="예: 2026-03-15" value="${contract.risk_assessment_data?.date || ''}">
+      </div>
+      <div class="row">
+        <label>위험요인 및 대책 (간략히)</label>
+        <textarea name="summary" rows="3">${contract.risk_assessment_data?.summary || ''}</textarea>
+      </div>
+      <div class="row">
+        <label>위험성평가서 파일 첨부 <span class="req">*</span></label>
+        <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.hwp,.hwpx,.doc,.docx">
+      </div>
+      <button type="submit">위험성평가 제출</button>
+    </form>
+  `;
+  document.getElementById('risk-form').addEventListener('submit', submitRiskFile);
+}
+
+function renderRiskDirect() {
+  document.getElementById('risk-direct-area').innerHTML = `
+    <form id="risk-direct-form">
+      <div class="row">
+        <label>위험요인 선택 (해당하는 것 모두 선택)</label>
+        <div class="hazard-grid" id="hazard-grid">
+          ${HAZARDS.map(h => `<div class="hazard-chip" data-h="${h}">${h}</div>`).join('')}
+        </div>
+      </div>
+      <div id="hazard-evals"></div>
+      <div class="row">
+        <label>보호구</label>
+        <div class="hazard-grid" id="ppe-grid">
+          ${PPES.map(p => `<div class="hazard-chip" data-p="${p}">${p}</div>`).join('')}
+        </div>
+      </div>
+      <div class="row">
+        <label>작성자 이름 <span class="req">*</span></label>
+        <input type="text" name="assessor_name" placeholder="홍길동" value="${contract.vendor_name ? '' : ''}">
+      </div>
+      <div class="row">
+        <label>연락처</label>
+        <input type="text" name="assessor_contact" placeholder="010-0000-0000">
+      </div>
+      <div class="row">
+        <label>서명 <span class="req">*</span> <span style="color:#999;font-weight:400">(마우스 또는 손가락으로 서명)</span></label>
+        <canvas class="sig" id="risk-sig-canvas" width="600" height="220"></canvas>
+        <button type="button" class="ghost" id="risk-sig-clear">서명 지우기</button>
+      </div>
+      <button type="submit">위험성평가 제출</button>
+    </form>
+  `;
+
+  document.querySelectorAll('#hazard-grid .hazard-chip').forEach(el => {
+    el.addEventListener('click', () => {
+      const h = el.dataset.h;
+      if (selectedHazards.has(h)) selectedHazards.delete(h); else selectedHazards.add(h);
+      el.classList.toggle('active');
+      renderHazardEvals();
+    });
+  });
+  document.querySelectorAll('#ppe-grid .hazard-chip').forEach(el => {
+    el.addEventListener('click', () => {
+      const p = el.dataset.p;
+      if (selectedPpe.has(p)) selectedPpe.delete(p); else selectedPpe.add(p);
+      el.classList.toggle('active');
+    });
+  });
+
+  const canvas = document.getElementById('risk-sig-canvas');
+  riskPad = createSignaturePad(canvas);
+  document.getElementById('risk-sig-clear').addEventListener('click', () => riskPad.clear());
+  document.getElementById('risk-direct-form').addEventListener('submit', submitRiskDirect);
+}
+
+function renderHazardEvals() {
+  const box = document.getElementById('hazard-evals');
+  box.innerHTML = [...selectedHazards].map(h => {
+    const e = hazardEval[h] || { freq: '중', severity: '중', measure: '' };
+    hazardEval[h] = e;
+    const ri = riskInfo(e.freq, e.severity);
+    return `
+      <div class="hazard-box" data-hazard="${h}">
+        <div class="head"><span>${h}</span><span class="risk-badge ${ri.cls}">${ri.text} (${ri.score}점)</span></div>
+        <div style="font-size:12px;color:#777;margin-bottom:4px;">발생 빈도</div>
+        <div class="level-row freq-row">
+          ${LEVELS.map(l => `<button type="button" data-l="${l}" class="${e.freq === l ? 'active' : ''}">${l}</button>`).join('')}
+        </div>
+        <div style="font-size:12px;color:#777;margin-bottom:4px;">피해 강도</div>
+        <div class="level-row sev-row">
+          ${LEVELS.map(l => `<button type="button" data-l="${l}" class="${e.severity === l ? 'active' : ''}">${l}</button>`).join('')}
+        </div>
+        <input type="text" class="measure-input" placeholder="감소 대책을 입력하세요" value="${e.measure}" style="width:100%;padding:8px;border:1px solid #d8dadd;border-radius:7px;font-size:13px;">
+      </div>
+    `;
+  }).join('');
+
+  box.querySelectorAll('.hazard-box').forEach(boxEl => {
+    const h = boxEl.dataset.hazard;
+    boxEl.querySelectorAll('.freq-row button').forEach(btn =>
+      btn.addEventListener('click', () => { hazardEval[h].freq = btn.dataset.l; renderHazardEvals(); }));
+    boxEl.querySelectorAll('.sev-row button').forEach(btn =>
+      btn.addEventListener('click', () => { hazardEval[h].severity = btn.dataset.l; renderHazardEvals(); }));
+    boxEl.querySelector('.measure-input').addEventListener('input', (e) => { hazardEval[h].measure = e.target.value; });
+  });
+}
+
+async function submitRiskFile(e) {
+  e.preventDefault();
+  const form = e.target;
+  const file = form.file.files[0];
+  if (!file) { alert('파일을 첨부해주세요.'); return; }
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('data', JSON.stringify({ mode: 'file', date: form.date.value, summary: form.summary.value }));
+  const btn = form.querySelector('button');
+  btn.disabled = true; btn.textContent = '제출 중...';
+  const res = await fetch(`/api/vendor/${token}/risk-assessment`, { method: 'POST', body: fd });
+  if (res.ok) { alert('위험성평가가 제출되었습니다.'); location.reload(); }
+  else { alert('제출에 실패했습니다.'); btn.disabled = false; btn.textContent = '위험성평가 제출'; }
+}
+
+async function submitRiskDirect(e) {
+  e.preventDefault();
+  const form = e.target;
+  if (selectedHazards.size === 0) { alert('위험요인을 1개 이상 선택해주세요.'); return; }
+  if (!form.assessor_name.value.trim()) { alert('작성자 이름을 입력해주세요.'); return; }
+  if (riskPad.isEmpty()) { alert('서명을 해주세요.'); return; }
+
+  const hazards = [...selectedHazards].map(h => {
+    const e2 = hazardEval[h];
+    const ri = riskInfo(e2.freq, e2.severity);
+    return { hazard: h, freq: e2.freq, severity: e2.severity, score: ri.score, level: ri.text, measure: e2.measure };
+  });
+
+  const fd = new FormData();
+  fd.append('data', JSON.stringify({
+    mode: 'direct',
+    hazards,
+    ppe: [...selectedPpe],
+    assessor_name: form.assessor_name.value,
+    assessor_contact: form.assessor_contact.value,
+  }));
+  fd.append('signature', riskPad.toDataURL());
+
+  const btn = form.querySelector('button');
+  btn.disabled = true; btn.textContent = '제출 중...';
+  const res = await fetch(`/api/vendor/${token}/risk-assessment`, { method: 'POST', body: fd });
+  if (res.ok) { alert('위험성평가가 제출되었습니다.'); location.reload(); }
+  else { alert('제출에 실패했습니다.'); btn.disabled = false; btn.textContent = '위험성평가 제출'; }
+}
+
+async function submitPledge(e) {
+  e.preventDefault();
+  if (pledgePad.isEmpty()) { alert('서명을 해주세요.'); return; }
+  if (!document.getElementById('pledge-agree').checked) { alert('서약 내용에 동의해야 제출할 수 있습니다.'); return; }
+  const form = e.target;
+  const btn = form.querySelector('button');
+  btn.disabled = true; btn.textContent = '제출 중...';
+  const res = await fetch(`/api/vendor/${token}/pledge`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      signature: pledgePad.toDataURL(),
+      company_name: form.company_name.value,
+      responsible_person: form.responsible_person.value,
+    }),
+  });
+  if (res.ok) { alert('준수서약서가 제출되었습니다.'); location.reload(); }
+  else { alert('제출에 실패했습니다.'); btn.disabled = false; btn.textContent = '준수서약서 제출'; }
+}
+
+load();
+</script>
+</body>
+</html>

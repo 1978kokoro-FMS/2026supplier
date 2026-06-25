@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>발주담당자 서류 제출 - 2026년 상반기</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+.mode-toggle { display: flex; gap: 8px; margin-bottom: 14px; }
+.mode-toggle button { flex: 1; background: #f0f1f3; color: #555; }
+.mode-toggle button.active { background: #2563eb; color: #fff; }
+.chip-grid { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.chip { border: 1px solid #d8dadd; border-radius: 8px; padding: 9px 12px; font-size: 13px; cursor: pointer; }
+.chip.active { background: #eef4ff; border-color: #2563eb; color: #1d4ed8; font-weight: 600; }
+.sig-block { margin-bottom: 16px; }
+.sig-block .name { display: flex; gap: 8px; margin-bottom: 6px; }
+.sig-block .name input { flex: 1; }
+.eval-section { font-size: 12px; font-weight: 700; color: #1d4ed8; background: #eef4ff; border: 1px solid #cfe0fb; border-radius: 8px; padding: 8px 10px; margin: 14px 0 8px; }
+.eval-item { border: 1px solid #e3e5e8; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+.eval-item .head { background: #f7f8f9; padding: 8px 10px; border-bottom: 1px solid #e3e5e8; }
+.eval-item .head .t { font-size: 12px; font-weight: 700; }
+.eval-item .head .d { font-size: 11px; color: #999; margin-top: 2px; }
+.eval-item .levels { display: flex; gap: 6px; padding: 8px 10px; }
+.eval-item .levels button { flex: 1; border: 2px solid #d8dadd; background: #fff; color: #999; padding: 8px 4px; font-size: 12px; font-weight: 700; border-radius: 8px; }
+.eval-item .levels button.sel-우수 { border-color: #16a34a; background: #16a34a; color: #fff; }
+.eval-item .levels button.sel-보통 { border-color: #ca8a04; background: #ca8a04; color: #fff; }
+.eval-item .levels button.sel-미흡 { border-color: #dc2626; background: #dc2626; color: #fff; }
+.score-card { border: 2px solid #cfe0fb; background: #eef4ff; border-radius: 12px; padding: 14px; margin: 14px 0; }
+.score-card .total { font-size: 24px; font-weight: 800; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>2026년 상반기 안전관리 서류 제출 (발주담당자)</h1>
+  <div class="sub">안전작업허가서 / 적격수급업체 평가표</div>
+  <div id="loading" class="msg">불러오는 중...</div>
+  <div id="content" style="display:none"></div>
+</div>
+<script src="/signature.js"></script>
+<script>
+const WORK_TYPES = ['화기작업 (용접·용단·그라인더 등)', '고소작업 (2m 이상)', '밀폐공간작업', '중장비작업 (크레인·고소작업대 등)', '전기작업', '굴착작업', '일반보수작업', '기타'];
+const RISK_CHECKS = [
+  '보호구(안전모·안전화·장갑 등) 착용 확인',
+  '작업 구역 안전표지 및 통제선 설치 확인',
+  '작업 전 유해위험요인 확인 완료',
+  '비상연락처 및 대피경로 숙지',
+  '작업 관련 자격증/면허 보유 확인',
+];
+
+const SECTIONS = [
+  { label: 'A. 안전보건관리체계', items: [
+    { key: 'a1', no: '1', title: '일반원칙', desc: '원청과 하청사업주의 안전보건방침 부합 여부', 우수: 5, 보통: 3, 미흡: 1 },
+    { key: 'a2', no: '2', title: '계획수립', desc: '원청의 산업재해예방 활동에 대한 하청의 이행계획 부합여부', 우수: 10, 보통: 5, 미흡: 1 },
+    { key: 'a3', no: '3', title: '역할 및 책임', desc: '이행계획 추진을 위한 구성원의 역할 분담(본사, 현장)', 우수: 5, 보통: 3, 미흡: 1 },
+  ]},
+  { label: 'B. 실행수준', items: [
+    { key: 'b4', no: '4', title: '위험성평가', desc: '도급작업의 위험성평가 결과에 대한 이해수준 및 자체 유해·위험요인 평가수준', 우수: 5, 보통: 3, 미흡: 1 },
+    { key: 'b5', no: '5', title: '안전점검', desc: '안전점검 및 모니터링(보호구 착용확인 포함)', 우수: 10, 보통: 5, 미흡: 1 },
+    { key: 'b6', no: '6', title: '이행확인', desc: '안전조치 이행여부 확인(원청의 지도조언에 대한 이행 포함)', 우수: 10, 보통: 5, 미흡: 1 },
+    { key: 'b7', no: '7', title: '교육 및 기록', desc: '안전보건교육 계획 및 기록관리', 우수: 5, 보통: 3, 미흡: 1 },
+    { key: 'b8', no: '8', title: '안전작업허가', desc: '유해·위험작업에 대한 안전작업허가 이행수준', 우수: 10, 보통: 5, 미흡: 1 },
+  ]},
+  { label: 'C. 운영관리', items: [
+    { key: 'c9', no: '9', title: '신호 및 연락체계', desc: '원청/하청간 신호체계, 연락체계', 우수: 5, 보통: 3, 미흡: 1 },
+    { key: 'c10', no: '10', title: '위험물질 및 설비', desc: '유해·위험 물질 및 취급 기계·기구 및 설비의 안전성 확인', 우수: 10, 보통: 5, 미흡: 1 },
+    { key: 'c11', no: '11', title: '비상대책', desc: '비상시 대피 및 피해최소화 대책(고용부, 소방서, 병원 포함)', 우수: 5, 보통: 3, 미흡: 1 },
+  ]},
+  { label: 'D. 재해발생 수준', items: [
+    { key: 'd12', no: '12', title: '산업재해현황', desc: '최근 3년간 산업재해 발생현황', 우수: 20, 보통: 10, 미흡: 1 },
+  ]},
+];
+const ALL_ITEMS = SECTIONS.flatMap(s => s.items);
+
+function getGrade(score) {
+  if (score >= 90) return { label: 'S등급 (최우수)' };
+  if (score >= 80) return { label: 'A등급 (적격)' };
+  if (score >= 70) return { label: 'B등급' };
+  if (score >= 60) return { label: 'C등급' };
+  return { label: 'D등급 (부적격)' };
+}
+
+const token = new URLSearchParams(location.search).get('t');
+let contract = null;
+let permitMode = 'direct';
+const riskChecked = new Set();
+const evalLevels = {};
+let supervisorPad = null, facilityPad = null, workerPad = null;
+
+async function load() {
+  if (!token) { showError('잘못된 링크입니다.'); return; }
+  const res = await fetch(`/api/team/${token}`);
+  if (!res.ok) { showError('유효하지 않은 링크입니다. 발급받은 링크를 다시 확인해주세요.'); return; }
+  contract = await res.json();
+  render();
+}
+
+function showError(msg) {
+  document.getElementById('loading').textContent = msg;
+  document.getElementById('loading').className = 'msg error';
+}
+
+function render() {
+  document.getElementById('loading').style.display = 'none';
+  const c = document.getElementById('content');
+  c.style.display = 'block';
+
+  const permitDone = !!contract.permit_submitted_at;
+  const evalDone = !!contract.vendor_eval_submitted_at;
+
+  c.innerHTML = `
+    <div class="info">
+      <b>${contract.business_name || ''}</b> / 업체: <b>${contract.vendor_name || ''}</b> / 담당팀: <b>${contract.team || ''}</b><br>
+      작업유형: ${contract.work_type || '-'} · 계약일자: ${contract.contract_date || '-'}
+    </div>
+
+    ${contract.needs_permit ? `
+    <div class="card" id="permit-card">
+      <h2>1. 안전작업허가서 ${permitDone ? '<span class="tag done">제출완료</span>' : '<span class="tag pending">미제출</span>'}</h2>
+      <div class="mode-toggle">
+        <button type="button" id="permit-mode-file">파일이 있어요</button>
+        <button type="button" id="permit-mode-direct">직접 작성할게요</button>
+      </div>
+      <div id="permit-file-area"></div>
+      <div id="permit-direct-area"></div>
+    </div>` : ''}
+
+    ${contract.needs_vendor_eval ? `
+    <div class="card" id="eval-card">
+      <h2>2. 적격수급업체 평가표(표준) ${evalDone ? '<span class="tag done">제출완료</span>' : '<span class="tag pending">미제출</span>'}</h2>
+      <div class="row">
+        <label>평가일</label>
+        <input type="text" id="eval-date" value="${new Date().toISOString().split('T')[0]}">
+      </div>
+      <div class="row">
+        <label>평가자 <span class="req">*</span></label>
+        <input type="text" id="eval-name" placeholder="홍길동">
+      </div>
+      <div class="row">
+        <label>소속부서</label>
+        <input type="text" id="eval-dept" value="${contract.team || ''}">
+      </div>
+      <div id="eval-sections"></div>
+      <div class="score-card" id="eval-score" style="display:none"></div>
+      <div class="row">
+        <label>종합 의견 (선택)</label>
+        <textarea id="eval-opinion" rows="3"></textarea>
+      </div>
+      <button type="button" id="eval-submit-btn">평가표 제출</button>
+    </div>` : ''}
+  `;
+
+  if (contract.needs_permit) {
+    document.getElementById('permit-mode-file').addEventListener('click', () => setPermitMode('file'));
+    document.getElementById('permit-mode-direct').addEventListener('click', () => setPermitMode('direct'));
+    setPermitMode('direct');
+  }
+  if (contract.needs_vendor_eval) {
+    renderEvalSections();
+    document.getElementById('eval-submit-btn').addEventListener('click', submitEval);
+  }
+}
+
+// ── 안전작업허가서 ──────────────────────────────────────────
+function setPermitMode(mode) {
+  permitMode = mode;
+  document.getElementById('permit-mode-file').classList.toggle('active', mode === 'file');
+  document.getElementById('permit-mode-direct').classList.toggle('active', mode === 'direct');
+  document.getElementById('permit-file-area').style.display = mode === 'file' ? 'block' : 'none';
+  document.getElementById('permit-direct-area').style.display = mode === 'direct' ? 'block' : 'none';
+  if (mode === 'file' && !document.getElementById('permit-file-form')) renderPermitFile();
+  if (mode === 'direct' && !document.getElementById('permit-direct-form')) renderPermitDirect();
+}
+
+function renderPermitFile() {
+  document.getElementById('permit-file-area').innerHTML = `
+    <form id="permit-file-form">
+      <div class="row"><label>작업기간</label><input type="text" name="period" placeholder="예: 2026-03-10 ~ 2026-03-12"></div>
+      <div class="row"><label>허가서 파일 첨부 <span class="req">*</span></label><input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.hwp,.hwpx,.doc,.docx"></div>
+      <button type="submit">안전작업허가서 제출</button>
+    </form>
+  `;
+  document.getElementById('permit-file-form').addEventListener('submit', submitPermitFile);
+}
+
+function renderPermitDirect() {
+  document.getElementById('permit-direct-area').innerHTML = `
+    <form id="permit-direct-form">
+      <div class="row"><label>수급업체명 <span class="req">*</span></label><input type="text" name="company_name" value="${contract.vendor_name || ''}" required></div>
+      <div class="row"><label>작업자 성명 <span class="req">*</span></label><input type="text" name="worker_name" required></div>
+      <div class="row"><label>작업자 연락처</label><input type="text" name="worker_phone" placeholder="010-0000-0000"></div>
+      <div class="row">
+        <label>작업 유형 <span class="req">*</span></label>
+        <select name="work_type" required style="width:100%;padding:9px 10px;border:1px solid #d8dadd;border-radius:8px;">
+          <option value="">선택하세요</option>
+          ${WORK_TYPES.map(t => `<option ${contract.work_type === t ? 'selected' : ''}>${t}</option>`).join('')}
+        </select>
+      </div>
+      <div class="row"><label>작업 위치 <span class="req">*</span></label><input type="text" name="work_location" placeholder="예) 본관 B1 승강기실" required></div>
+      <div class="row"><label>작업 일자 <span class="req">*</span></label><input type="text" name="work_date" placeholder="2026-03-10" value="${contract.contract_date || ''}" required></div>
+      <div class="row"><label>작업 시작 시간</label><input type="text" name="work_start_time" placeholder="09:00"></div>
+      <div class="row"><label>특이사항</label><textarea name="special_notes" rows="2"></textarea></div>
+
+      <div class="row">
+        <label>작업 전 안전확인</label>
+        <div class="chip-grid" id="risk-chip-grid">
+          ${RISK_CHECKS.map(r => `<div class="chip" data-r="${r}">${r}</div>`).join('')}
+        </div>
+      </div>
+
+      <div class="sig-block">
+        <label>관리감독자 서명 <span class="req">*</span></label>
+        <div class="name"><input type="text" name="supervisor_name" placeholder="이름"></div>
+        <canvas class="sig" id="sig-supervisor" width="600" height="160"></canvas>
+        <button type="button" class="ghost" data-clear="supervisor">서명 지우기</button>
+      </div>
+      <div class="sig-block">
+        <label>시설담당자 서명 <span class="req">*</span></label>
+        <div class="name"><input type="text" name="facility_name" placeholder="이름"></div>
+        <canvas class="sig" id="sig-facility" width="600" height="160"></canvas>
+        <button type="button" class="ghost" data-clear="facility">서명 지우기</button>
+      </div>
+      <div class="sig-block">
+        <label>작업자 서명 <span class="req">*</span></label>
+        <canvas class="sig" id="sig-worker" width="600" height="160"></canvas>
+        <button type="button" class="ghost" data-clear="worker">서명 지우기</button>
+      </div>
+
+      <button type="submit">안전작업허가서 제출</button>
+    </form>
+  `;
+
+  document.querySelectorAll('#risk-chip-grid .chip').forEach(el => {
+    el.addEventListener('click', () => {
+      const r = el.dataset.r;
+      if (riskChecked.has(r)) riskChecked.delete(r); else riskChecked.add(r);
+      el.classList.toggle('active');
+    });
+  });
+
+  supervisorPad = createSignaturePad(document.getElementById('sig-supervisor'));
+  facilityPad = createSignaturePad(document.getElementById('sig-facility'));
+  workerPad = createSignaturePad(document.getElementById('sig-worker'));
+  document.querySelectorAll('[data-clear]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      ({ supervisor: supervisorPad, facility: facilityPad, worker: workerPad })[btn.dataset.clear].clear();
+    });
+  });
+
+  document.getElementById('permit-direct-form').addEventListener('submit', submitPermitDirect);
+}
+
+async function submitPermitFile(e) {
+  e.preventDefault();
+  const form = e.target;
+  const file = form.file.files[0];
+  if (!file) { alert('파일을 첨부해주세요.'); return; }
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('data', JSON.stringify({ mode: 'file', period: form.period.value }));
+  const btn = form.querySelector('button');
+  btn.disabled = true; btn.textContent = '제출 중...';
+  const res = await fetch(`/api/team/${token}/permit`, { method: 'POST', body: fd });
+  if (res.ok) { alert('안전작업허가서가 제출되었습니다.'); location.reload(); }
+  else { alert('제출에 실패했습니다.'); btn.disabled = false; btn.textContent = '안전작업허가서 제출'; }
+}
+
+async function submitPermitDirect(e) {
+  e.preventDefault();
+  const form = e.target;
+  if (supervisorPad.isEmpty()) { alert('관리감독자 서명을 해주세요.'); return; }
+  if (facilityPad.isEmpty()) { alert('시설담당자 서명을 해주세요.'); return; }
+  if (workerPad.isEmpty()) { alert('작업자 서명을 해주세요.'); return; }
+
+  const fd = new FormData();
+  fd.append('data', JSON.stringify({
+    mode: 'direct',
+    company_name: form.company_name.value,
+    worker_name: form.worker_name.value,
+    worker_phone: form.worker_phone.value,
+    work_type: form.work_type.value,
+    work_location: form.work_location.value,
+    work_date: form.work_date.value,
+    work_start_time: form.work_start_time.value,
+    special_notes: form.special_notes.value,
+    risk_checks: [...riskChecked],
+    supervisor_name: form.supervisor_name.value,
+    facility_name: form.facility_name.value,
+  }));
+  fd.append('supervisor_signature', supervisorPad.toDataURL());
+  fd.append('facility_signature', facilityPad.toDataURL());
+  fd.append('worker_signature', workerPad.toDataURL());
+
+  const btn = form.querySelector('button');
+  btn.disabled = true; btn.textContent = '제출 중...';
+  const res = await fetch(`/api/team/${token}/permit`, { method: 'POST', body: fd });
+  if (res.ok) { alert('안전작업허가서가 제출되었습니다.'); location.reload(); }
+  else { alert('제출에 실패했습니다.'); btn.disabled = false; btn.textContent = '안전작업허가서 제출'; }
+}
+
+// ── 적격수급업체 평가표 ──────────────────────────────────────
+function renderEvalSections() {
+  const box = document.getElementById('eval-sections');
+  box.innerHTML = SECTIONS.map(s => `
+    <div class="eval-section">${s.label}</div>
+    ${s.items.map(item => `
+      <div class="eval-item" data-key="${item.key}">
+        <div class="head">
+          <div class="t">${item.no}. ${item.title}</div>
+          <div class="d">${item.desc}</div>
+        </div>
+        <div class="levels">
+          ${['우수', '보통', '미흡'].map(lv => `<button type="button" data-lv="${lv}">${lv} (${item[lv]}점)</button>`).join('')}
+        </div>
+      </div>
+    `).join('')}
+  `).join('');
+
+  box.querySelectorAll('.eval-item').forEach(itemEl => {
+    const key = itemEl.dataset.key;
+    itemEl.querySelectorAll('.levels button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        evalLevels[key] = btn.dataset.lv;
+        itemEl.querySelectorAll('.levels button').forEach(b => b.className = '');
+        btn.className = `sel-${btn.dataset.lv}`;
+        updateScore();
+      });
+    });
+  });
+}
+
+function updateScore() {
+  const allSelected = ALL_ITEMS.every(i => evalLevels[i.key]);
+  const scoreCard = document.getElementById('eval-score');
+  if (!allSelected) { scoreCard.style.display = 'none'; return; }
+  const total = ALL_ITEMS.reduce((sum, i) => sum + i[evalLevels[i.key]], 0);
+  const grade = getGrade(total);
+  scoreCard.style.display = 'block';
+  scoreCard.innerHTML = `<div class="total">${total}<span style="font-size:14px;font-weight:400;color:#666;"> / 100점</span></div><div style="font-weight:700;margin-top:4px;">${grade.label}</div>`;
+}
+
+async function submitEval() {
+  const allSelected = ALL_ITEMS.every(i => evalLevels[i.key]);
+  const name = document.getElementById('eval-name').value.trim();
+  if (!name) { alert('평가자 이름을 입력해주세요.'); return; }
+  if (!allSelected) { alert('모든 항목을 평가해주세요.'); return; }
+
+  const scores = {};
+  ALL_ITEMS.forEach(i => { scores[i.key] = i[evalLevels[i.key]]; });
+  const total_score = ALL_ITEMS.reduce((sum, i) => sum + i[evalLevels[i.key]], 0);
+  const grade = getGrade(total_score).label;
+
+  const btn = document.getElementById('eval-submit-btn');
+  btn.disabled = true; btn.textContent = '제출 중...';
+  const res = await fetch(`/api/team/${token}/vendor-eval`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      data: {
+        evaluator_name: name,
+        evaluator_dept: document.getElementById('eval-dept').value,
+        evaluated_at: document.getElementById('eval-date').value,
+        levels: evalLevels,
+        scores,
+        total_score,
+        grade,
+        opinion: document.getElementById('eval-opinion').value,
+      },
+    }),
+  });
+  if (res.ok) { alert('평가표가 제출되었습니다.'); location.reload(); }
+  else { alert('제출에 실패했습니다.'); btn.disabled = false; btn.textContent = '평가표 제출'; }
+}
+
+load();
+</script>
+</body>
+</html>
