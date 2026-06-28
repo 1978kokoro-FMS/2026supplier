@@ -178,11 +178,27 @@ function renderSummary() {
 function badge(ok, needed, id, docType) {
   if (!needed) return '<span style="color:#bbb">해당없음</span>';
   if (!ok) return '<span class="tag pending">대기</span>';
-  return `<span class="tag done">완료</span> <button class="ghost" onclick="printDoc('${id}','${docType}')">🖨️ 인쇄</button>`;
+  return `<span class="tag done">완료</span> <button class="ghost" onclick="printDoc('${id}','${docType}')">🖨️ 인쇄</button> <button class="ghost" style="color:#c0392b;border-color:#c0392b;" onclick="resetSubmission('${id}','${docType}')">삭제</button>`;
 }
 
 function printDoc(id, docType) {
   window.open(`/print.html?id=${id}&doc=${docType}`, '_blank');
+}
+
+const DOC_TYPE_LABELS = { risk: '위험성평가', pledge: '준수서약서', permit: '안전작업허가서', eval: '적격평가표', plan: '안전보건관리계획서' };
+
+async function resetSubmission(id, docType) {
+  if (!confirm(`'${DOC_TYPE_LABELS[docType] || docType}' 제출 내용을 삭제하시겠습니까?\n파일/서명 등 제출 데이터가 모두 지워지고 '미제출' 상태로 돌아가며, 되돌릴 수 없습니다.`)) return;
+  const res = await fetch(`/api/admin/contracts/${id}/submission/${docType}`, {
+    method: 'DELETE',
+    headers: { 'x-admin-password': ADMIN_PW },
+  });
+  if (!res.ok) { alert('삭제에 실패했습니다.'); return; }
+  const updated = await res.json();
+  const row = rows.find(r => r.id === id);
+  if (row) Object.assign(row, updated);
+  renderSummary();
+  renderTable();
 }
 
 function renderTable() {

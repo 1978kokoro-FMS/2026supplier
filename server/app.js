@@ -215,4 +215,29 @@ app.delete('/api/admin/contracts/:id', requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
+const SUBMISSION_RESET_FIELDS = {
+  risk: ['risk_assessment_data', 'risk_assessment_file', 'risk_assessment_signature', 'risk_assessment_submitted_at'],
+  pledge: ['pledge_signature', 'pledge_company_name', 'pledge_responsible_person', 'pledge_submitted_at'],
+  permit: ['permit_data', 'permit_file', 'permit_supervisor_signature', 'permit_facility_signature', 'permit_worker_signature', 'permit_submitted_at'],
+  eval: ['vendor_eval_data', 'vendor_eval_signature', 'vendor_eval_submitted_at'],
+  plan: ['safety_plan_file', 'safety_plan_submitted_at'],
+};
+
+app.delete('/api/admin/contracts/:id/submission/:docType', requireAdmin, async (req, res) => {
+  const fields = SUBMISSION_RESET_FIELDS[req.params.docType];
+  if (!fields) return res.status(400).json({ error: '알 수 없는 서류 종류입니다.' });
+
+  const update = {};
+  fields.forEach(f => { update[f] = null; });
+
+  const { data, error } = await supabase
+    .from('h1_2026_contracts')
+    .update(update)
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
 module.exports = app;
