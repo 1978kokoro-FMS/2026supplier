@@ -252,7 +252,6 @@ function renderTable() {
             <button class="ghost" onclick="copyLink('vendor','${r.vendor_token}')">업체 링크</button>
             <button class="ghost" onclick="copyLink('team','${r.team_token}')">팀 링크</button>
             <button class="ghost" onclick="copyLink('finance','${r.finance_token}')">재무 링크</button>
-            <button class="ghost" style="color:#c0392b;" onclick="deleteContract('${r.id}','${(r.vendor_name ?? '').replace(/'/g, "\\'")}')">행 삭제</button>
           </div>
         </td>
       `;
@@ -266,17 +265,6 @@ function copyLink(type, token) {
   alert('링크가 복사되었습니다:\n' + url);
 }
 
-async function deleteContract(id, vendorName) {
-  if (!confirm(`'${vendorName || '이 항목'}'을(를) 삭제하시겠습니까?\n제출된 서류/서명 데이터가 모두 함께 삭제되며 되돌릴 수 없습니다.`)) return;
-  const res = await fetch(`/api/admin/contracts/${id}`, {
-    method: 'DELETE',
-    headers: { 'x-admin-password': ADMIN_PW },
-  });
-  if (!res.ok) { alert('삭제에 실패했습니다.'); return; }
-  rows = rows.filter(r => r.id !== id);
-  renderSummary();
-  renderTable();
-}
 </script>
 </body>
 </html>
