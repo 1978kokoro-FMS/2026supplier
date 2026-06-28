@@ -5,7 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>제출현황 대시보드 - 2026년 상반기</title>
 <link rel="stylesheet" href="/style.css">
-<style>.wrap { max-width: 1400px; } .toolbar { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; } .toolbar input, .toolbar select { padding:7px 10px; border:1px solid #d8dadd; border-radius:7px; font-size:13px; } .summary { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; } .summary div { background:#fff; border:1px solid #e3e5e8; border-radius:10px; padding:10px 16px; font-size:13px; } .summary b { font-size:18px; display:block; }</style>
+<style>
+  .wrap { max-width: 1700px; }
+  .toolbar { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .toolbar input, .toolbar select { padding:7px 10px; border:1px solid #d8dadd; border-radius:7px; font-size:13px; }
+  .summary { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .summary div { background:#fff; border:1px solid #e3e5e8; border-radius:10px; padding:10px 16px; font-size:13px; }
+  .summary b { font-size:18px; display:block; }
+  #tbl { border-collapse:collapse; table-layout:fixed; width:100%; }
+  #tbl th, #tbl td { border-bottom:1px solid #eee; padding:6px 8px; font-size:13px; vertical-align:top; }
+  #tbl th { position:sticky; top:0; background:#fafafa; z-index:1; }
+  #tbl col.col-no { width:50px; } #tbl col.col-no2 { width:60px; }
+  #tbl col.col-team { width:90px; } #tbl col.col-vendor { width:130px; }
+  #tbl col.col-worktype { width:170px; } #tbl col.col-memo { width:320px; }
+  #tbl col.col-doc { width:120px; } #tbl col.col-link { width:150px; }
+  #tbl col.col-business { width:160px; }
+  .memo-input { width:100%; min-height:48px; resize:vertical; padding:5px 7px; border:1px solid #d8dadd; border-radius:6px; font-size:13px; font-family:inherit; line-height:1.4; box-sizing:border-box; }
+  .worktype-select { width:100%; padding:5px 6px; border:1px solid #d8dadd; border-radius:6px; font-size:13px; box-sizing:border-box; }
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -28,7 +45,14 @@
       <span id="refresh-status" class="muted" style="font-size:12px; align-self:center;"></span>
     </div>
     <div style="overflow:auto; max-height:75vh; border:1px solid #e3e5e8; border-radius:10px;">
-      <table id="tbl"><thead><tr>
+      <table id="tbl">
+        <colgroup>
+          <col class="col-no"><col class="col-no2"><col class="col-team"><col class="col-business">
+          <col class="col-vendor"><col class="col-worktype"><col class="col-memo">
+          <col class="col-doc"><col class="col-doc"><col class="col-doc"><col class="col-doc"><col class="col-doc">
+          <col class="col-link">
+        </colgroup>
+        <thead><tr>
         <th>순번</th><th>No</th><th>담당팀</th><th>사업명</th><th>업체명</th><th>작업유형</th><th>대표 적요(memo)</th>
         <th>위험성평가</th><th>준수서약서</th><th>안전작업허가서</th><th>적격평가표</th><th>안전보건계획서</th>
         <th>링크</th>
@@ -181,13 +205,13 @@ function renderTable() {
         <td>${r.business_name ?? ''}</td>
         <td>${r.vendor_name ?? ''}</td>
         <td>
-          <select style="width:100%;padding:4px 6px;border:1px solid #d8dadd;border-radius:6px;font-size:13px;" onchange="onWorkTypeChange('${r.id}', this.value)">
+          <select class="worktype-select" onchange="onWorkTypeChange('${r.id}', this.value)">
             ${(WORK_TYPES.includes(r.work_type) ? WORK_TYPES : [r.work_type, ...WORK_TYPES].filter(Boolean))
               .map(t => `<option value="${t}" ${r.work_type === t ? 'selected' : ''}>${t}</option>`).join('')}
           </select>
         </td>
         <td>
-          <input type="text" value="${(r.memo ?? '').replace(/"/g, '&quot;')}" style="width:180px;padding:4px 6px;border:1px solid #d8dadd;border-radius:6px;font-size:13px;" onblur="onMemoBlur('${r.id}', this.value)">
+          <textarea class="memo-input" onblur="onMemoBlur('${r.id}', this.value)">${(r.memo ?? '').replace(/</g, '&lt;')}</textarea>
         </td>
         <td>${badge(!!r.risk_assessment_submitted_at, r.needs_risk_assessment, r.id, 'risk')}</td>
         <td>${badge(!!r.pledge_submitted_at, r.needs_pledge, r.id, 'pledge')}</td>
