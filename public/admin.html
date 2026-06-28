@@ -65,7 +65,7 @@
         <thead><tr>
         <th>순번</th><th>No</th><th>담당팀</th><th>사업명</th><th>업체명</th><th>작업내용</th><th>작업유형</th>
         <th>위험성평가</th><th>준수서약서</th><th>안전작업허가서</th><th>적격평가표</th><th>안전보건계획서</th>
-        <th>링크</th>
+        <th title="버튼을 누르면 해당 대상자용 제출 링크가 클립보드에 복사됩니다. 그 링크를 업체/담당팀/재무회계팀에 카카오톡·문자·메일 등으로 전달하면, 받은 사람이 로그인 없이 바로 자신이 제출할 서류를 작성/제출할 수 있습니다.">링크 ⓘ</th>
       </tr></thead><tbody></tbody></table>
     </div>
   </div>
@@ -249,9 +249,9 @@ function renderTable() {
         <td>${badge(!!r.safety_plan_submitted_at, r.needs_safety_plan, r.id, 'plan')}</td>
         <td>
           <div class="link-cell">
-            <button class="ghost" onclick="copyLink('vendor','${r.vendor_token}')">업체 링크</button>
-            <button class="ghost" onclick="copyLink('team','${r.team_token}')">팀 링크</button>
-            <button class="ghost" onclick="copyLink('finance','${r.finance_token}')">재무 링크</button>
+            <button class="ghost" title="업체가 위험성평가/준수서약서를 제출하는 링크를 복사합니다. 업체에 전달하세요." onclick="copyLink('vendor','${r.vendor_token}')">업체 링크</button>
+            <button class="ghost" title="발주담당팀이 안전작업허가서/적격평가표를 제출하는 링크를 복사합니다. 담당팀에 전달하세요." onclick="copyLink('team','${r.team_token}')">팀 링크</button>
+            <button class="ghost" title="재무회계팀이 안전보건관리계획서를 제출하는 링크를 복사합니다. 재무회계팀에 전달하세요." onclick="copyLink('finance','${r.finance_token}')">재무 링크</button>
           </div>
         </td>
       `;
