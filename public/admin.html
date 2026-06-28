@@ -45,7 +45,7 @@
     <div class="summary" id="summary"></div>
     <div class="toolbar">
       <select id="filter-team"><option value="">전체 담당팀</option></select>
-      <input type="text" id="filter-business" placeholder="사업명 검색">
+      <select id="filter-business"><option value="">전체 사업명</option></select>
       <input type="text" id="filter-vendor" placeholder="업체명 검색">
       <select id="filter-status">
         <option value="">전체 상태</option>
@@ -162,8 +162,25 @@ function initFilters() {
   const teams = [...new Set(rows.map(r => r.team).filter(Boolean))].sort();
   const sel = document.getElementById('filter-team');
   teams.forEach(t => sel.innerHTML += `<option value="${t}">${t}</option>`);
-  ['filter-team', 'filter-business', 'filter-vendor', 'filter-status'].forEach(id =>
+  populateBusinessOptions();
+  document.getElementById('filter-team').addEventListener('input', () => {
+    populateBusinessOptions();
+    renderTable();
+  });
+  ['filter-business', 'filter-vendor', 'filter-status'].forEach(id =>
     document.getElementById(id).addEventListener('input', renderTable));
+}
+
+function populateBusinessOptions() {
+  const team = document.getElementById('filter-team').value;
+  const businesses = [...new Set(
+    rows.filter(r => !team || r.team === team).map(r => r.business_name).filter(Boolean)
+  )].sort();
+  const sel = document.getElementById('filter-business');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">전체 사업명</option>' +
+    businesses.map(b => `<option value="${b}">${b}</option>`).join('');
+  if (businesses.includes(prev)) sel.value = prev;
 }
 
 function isComplete(r) {
@@ -225,7 +242,7 @@ function renderTable() {
 
   rows
     .filter(r => !team || r.team === team)
-    .filter(r => !business || (r.business_name || '').includes(business))
+    .filter(r => !business || r.business_name === business)
     .filter(r => !vendor || (r.vendor_name || '').includes(vendor))
     .filter(r => !status || (status === 'complete' ? isComplete(r) : !isComplete(r)))
     .forEach((r, idx) => {
