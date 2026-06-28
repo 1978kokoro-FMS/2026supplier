@@ -45,6 +45,7 @@
     <div class="summary" id="summary"></div>
     <div class="toolbar">
       <select id="filter-team"><option value="">전체 담당팀</option></select>
+      <input type="text" id="filter-business" placeholder="사업명 검색">
       <input type="text" id="filter-vendor" placeholder="업체명 검색">
       <select id="filter-status">
         <option value="">전체 상태</option>
@@ -161,7 +162,7 @@ function initFilters() {
   const teams = [...new Set(rows.map(r => r.team).filter(Boolean))].sort();
   const sel = document.getElementById('filter-team');
   teams.forEach(t => sel.innerHTML += `<option value="${t}">${t}</option>`);
-  ['filter-team', 'filter-vendor', 'filter-status'].forEach(id =>
+  ['filter-team', 'filter-business', 'filter-vendor', 'filter-status'].forEach(id =>
     document.getElementById(id).addEventListener('input', renderTable));
 }
 
@@ -216,6 +217,7 @@ async function resetSubmission(id, docType) {
 
 function renderTable() {
   const team = document.getElementById('filter-team').value;
+  const business = document.getElementById('filter-business').value.trim();
   const vendor = document.getElementById('filter-vendor').value.trim();
   const status = document.getElementById('filter-status').value;
   const tbody = document.querySelector('#tbl tbody');
@@ -223,6 +225,7 @@ function renderTable() {
 
   rows
     .filter(r => !team || r.team === team)
+    .filter(r => !business || (r.business_name || '').includes(business))
     .filter(r => !vendor || (r.vendor_name || '').includes(vendor))
     .filter(r => !status || (status === 'complete' ? isComplete(r) : !isComplete(r)))
     .forEach((r, idx) => {
