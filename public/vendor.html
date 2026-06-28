@@ -88,6 +88,7 @@ function render() {
     ${contract.needs_risk_assessment ? `
     <div class="card" id="risk-card">
       <h2>1. 위험성평가 실시서류 ${riskDone ? '<span class="tag done">제출완료</span>' : '<span class="tag pending">미제출</span>'}</h2>
+      ${riskDone ? '<p class="muted" style="font-size:12px;margin:-4px 0 10px;">※ 다시 제출하시면 기존 제출 내용이 새 내용으로 업데이트(덮어쓰기)됩니다.</p>' : ''}
       <div class="mode-toggle">
         <button type="button" id="mode-file">파일이 있어요</button>
         <button type="button" id="mode-direct">직접 작성할게요</button>
@@ -99,6 +100,7 @@ function render() {
     ${contract.needs_pledge ? `
     <div class="card" id="pledge-card">
       <h2>2. 안전작업 준수서약서 ${pledgeDone ? '<span class="tag done">제출완료</span>' : '<span class="tag pending">미제출</span>'}</h2>
+      ${pledgeDone ? '<p class="muted" style="font-size:12px;margin:-4px 0 10px;">※ 다시 제출하시면 기존 제출 내용이 새 내용으로 업데이트(덮어쓰기)됩니다.</p>' : ''}
       <div class="pledge-box">
         <h3>안전작업준수서약서</h3>
         <p><b>공 사 명:</b> ${contract.business_name || ''} (${contract.memo || ''})</p>

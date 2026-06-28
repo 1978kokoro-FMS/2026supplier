@@ -42,6 +42,7 @@ function render(contract) {
     </div>
     <div class="card">
       <h2>안전보건관리계획서 ${done ? '<span class="tag done">제출완료</span>' : '<span class="tag pending">미제출</span>'}</h2>
+      ${done ? '<p class="muted" style="font-size:12px;margin:-4px 0 10px;">※ 다시 제출하시면 기존 제출 내용이 새 내용으로 업데이트(덮어쓰기)됩니다.</p>' : ''}
       <form id="plan-form">
         <div class="row">
           <label>안전보건관리계획서 파일 첨부 <span class="req">*</span></label>

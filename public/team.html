@@ -116,6 +116,7 @@ function render() {
     ${contract.needs_permit ? `
     <div class="card" id="permit-card">
       <h2>1. 안전작업허가서 ${permitDone ? '<span class="tag done">제출완료</span>' : '<span class="tag pending">미제출</span>'}</h2>
+      ${permitDone ? '<p class="muted" style="font-size:12px;margin:-4px 0 10px;">※ 다시 제출하시면 기존 제출 내용이 새 내용으로 업데이트(덮어쓰기)됩니다.</p>' : ''}
       <div class="mode-toggle">
         <button type="button" id="permit-mode-file">파일이 있어요</button>
         <button type="button" id="permit-mode-direct">직접 작성할게요</button>
@@ -127,6 +128,7 @@ function render() {
     ${contract.needs_vendor_eval ? `
     <div class="card" id="eval-card">
       <h2>2. 적격수급업체 평가표(표준) ${evalDone ? '<span class="tag done">제출완료</span>' : '<span class="tag pending">미제출</span>'}</h2>
+      ${evalDone ? '<p class="muted" style="font-size:12px;margin:-4px 0 10px;">※ 다시 제출하시면 기존 제출 내용이 새 내용으로 업데이트(덮어쓰기)됩니다.</p>' : ''}
       <div class="row">
         <label>평가일</label>
         <input type="text" id="eval-date" value="${new Date().toISOString().split('T')[0]}">
