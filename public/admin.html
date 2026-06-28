@@ -163,12 +163,13 @@ function initFilters() {
   const sel = document.getElementById('filter-team');
   teams.forEach(t => sel.innerHTML += `<option value="${t}">${t}</option>`);
   populateBusinessOptions();
-  document.getElementById('filter-team').addEventListener('input', () => {
+  document.getElementById('filter-team').addEventListener('change', () => {
     populateBusinessOptions();
     renderTable();
   });
-  ['filter-business', 'filter-vendor', 'filter-status'].forEach(id =>
-    document.getElementById(id).addEventListener('input', renderTable));
+  document.getElementById('filter-business').addEventListener('change', renderTable);
+  document.getElementById('filter-status').addEventListener('change', renderTable);
+  document.getElementById('filter-vendor').addEventListener('input', renderTable);
 }
 
 function populateBusinessOptions() {
