@@ -123,7 +123,7 @@ function renderTable() {
         <td>${r.team ?? ''}</td>
         <td>${r.business_name ?? ''}</td>
         <td>${r.vendor_name ?? ''}</td>
-        <td>${r.work_type ?? ''}</td>
+        <td title="${(r.memo ?? '').replace(/"/g, '&quot;')}" style="${r.memo ? 'cursor:help; text-decoration:underline dotted;' : ''}">${r.work_type ?? ''}</td>
         <td>${badge(!!r.risk_assessment_submitted_at, r.needs_risk_assessment, r.id, 'risk')}</td>
         <td>${badge(!!r.pledge_submitted_at, r.needs_pledge, r.id, 'pledge')}</td>
         <td>${badge(!!r.permit_submitted_at, r.needs_permit, r.id, 'permit')}</td>
