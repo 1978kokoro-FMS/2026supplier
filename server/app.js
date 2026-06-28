@@ -206,4 +206,13 @@ app.patch('/api/admin/contracts/:id', requireAdmin, async (req, res) => {
   res.json(data);
 });
 
+app.delete('/api/admin/contracts/:id', requireAdmin, async (req, res) => {
+  const { error } = await supabase
+    .from('h1_2026_contracts')
+    .delete()
+    .eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
 module.exports = app;
