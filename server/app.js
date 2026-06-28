@@ -187,4 +187,23 @@ app.get('/api/admin/contracts/:id', requireAdmin, async (req, res) => {
   res.json(data);
 });
 
+const ALLOWED_ADMIN_FIELDS = ['memo', 'work_type', 'needs_safety_plan', 'needs_permit', 'needs_risk_assessment', 'needs_vendor_eval', 'needs_pledge'];
+
+app.patch('/api/admin/contracts/:id', requireAdmin, async (req, res) => {
+  const update = {};
+  for (const key of ALLOWED_ADMIN_FIELDS) {
+    if (key in req.body) update[key] = req.body[key];
+  }
+  if (Object.keys(update).length === 0) return res.status(400).json({ error: '수정할 항목이 없습니다.' });
+
+  const { data, error } = await supabase
+    .from('h1_2026_contracts')
+    .update(update)
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
 module.exports = app;

@@ -29,7 +29,7 @@
     </div>
     <div style="overflow:auto; max-height:75vh; border:1px solid #e3e5e8; border-radius:10px;">
       <table id="tbl"><thead><tr>
-        <th>순번</th><th>No</th><th>담당팀</th><th>사업명</th><th>업체명</th><th>작업유형</th>
+        <th>순번</th><th>No</th><th>담당팀</th><th>사업명</th><th>업체명</th><th>작업유형</th><th>대표 적요(memo)</th>
         <th>위험성평가</th><th>준수서약서</th><th>안전작업허가서</th><th>적격평가표</th><th>안전보건계획서</th>
         <th>링크</th>
       </tr></thead><tbody></tbody></table>
@@ -39,6 +39,63 @@
 <script>
 let ADMIN_PW = '';
 let rows = [];
+
+const WORK_TYPES = [
+  '조경업체(예초작업)', '소방 점검', '소방 보수', '승강기 점검', '승강기 보수',
+  '전기 점검', '전기보수', '저수조청소', '여과제 교체', '보일러 세관',
+  '시설물안전법 점검용역', '고소 작업', '일반 작업(보수공사)',
+];
+// 작업유형별 필요서류 매트릭스 (scripts/import-excel.js MATRIX와 동일)
+const NEEDS_MATRIX = {
+  '조경업체(예초작업)': [false, true, true, true, true],
+  '소방 점검': [true, true, true, true, true],
+  '소방 보수': [true, true, true, true, true],
+  '승강기 점검': [true, true, true, true, true],
+  '승강기 보수': [true, true, true, true, true],
+  '전기 점검': [true, true, true, true, true],
+  '전기보수': [true, true, true, true, true],
+  '저수조청소': [true, true, true, true, true],
+  '여과제 교체': [true, true, true, true, true],
+  '보일러 세관': [true, true, true, true, true],
+  '시설물안전법 점검용역': [true, true, true, true, true],
+  '고소 작업': [false, true, true, true, true],
+  '일반 작업(보수공사)': [false, false, true, true, true],
+};
+const DEFAULT_NEEDS = [false, false, true, true, true];
+
+async function patchContract(id, update) {
+  const res = await fetch(`/api/admin/contracts/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'x-admin-password': ADMIN_PW },
+    body: JSON.stringify(update),
+  });
+  if (!res.ok) { alert('저장에 실패했습니다.'); return null; }
+  return res.json();
+}
+
+async function onWorkTypeChange(id, value) {
+  const [needsPlan, needsPermit, needsRisk, needsEval, needsPledge] = NEEDS_MATRIX[value] || DEFAULT_NEEDS;
+  const update = {
+    work_type: value,
+    needs_safety_plan: needsPlan,
+    needs_permit: needsPermit,
+    needs_risk_assessment: needsRisk,
+    needs_vendor_eval: needsEval,
+    needs_pledge: needsPledge,
+  };
+  const updated = await patchContract(id, update);
+  if (!updated) return;
+  const row = rows.find(r => r.id === id);
+  Object.assign(row, updated);
+  renderTable();
+}
+
+async function onMemoBlur(id, value) {
+  const row = rows.find(r => r.id === id);
+  if (!row || row.memo === value) return;
+  const updated = await patchContract(id, { memo: value });
+  if (updated) Object.assign(row, updated);
+}
 
 document.getElementById('login-btn').addEventListener('click', async () => {
   ADMIN_PW = document.getElementById('pw').value;
@@ -123,7 +180,15 @@ function renderTable() {
         <td>${r.team ?? ''}</td>
         <td>${r.business_name ?? ''}</td>
         <td>${r.vendor_name ?? ''}</td>
-        <td title="${(r.memo ?? '').replace(/"/g, '&quot;')}" style="${r.memo ? 'cursor:help; text-decoration:underline dotted;' : ''}">${r.work_type ?? ''}</td>
+        <td>
+          <select style="width:100%;padding:4px 6px;border:1px solid #d8dadd;border-radius:6px;font-size:13px;" onchange="onWorkTypeChange('${r.id}', this.value)">
+            ${(WORK_TYPES.includes(r.work_type) ? WORK_TYPES : [r.work_type, ...WORK_TYPES].filter(Boolean))
+              .map(t => `<option value="${t}" ${r.work_type === t ? 'selected' : ''}>${t}</option>`).join('')}
+          </select>
+        </td>
+        <td>
+          <input type="text" value="${(r.memo ?? '').replace(/"/g, '&quot;')}" style="width:180px;padding:4px 6px;border:1px solid #d8dadd;border-radius:6px;font-size:13px;" onblur="onMemoBlur('${r.id}', this.value)">
+        </td>
         <td>${badge(!!r.risk_assessment_submitted_at, r.needs_risk_assessment, r.id, 'risk')}</td>
         <td>${badge(!!r.pledge_submitted_at, r.needs_pledge, r.id, 'pledge')}</td>
         <td>${badge(!!r.permit_submitted_at, r.needs_permit, r.id, 'permit')}</td>
