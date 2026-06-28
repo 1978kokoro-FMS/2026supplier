@@ -13,15 +13,25 @@
   .summary div { background:#fff; border:1px solid #e3e5e8; border-radius:10px; padding:10px 16px; font-size:13px; }
   .summary b { font-size:18px; display:block; }
   #tbl { border-collapse:collapse; table-layout:fixed; width:100%; }
-  #tbl th, #tbl td { border-bottom:1px solid #eee; padding:6px 8px; font-size:13px; vertical-align:top; }
-  #tbl th { position:sticky; top:0; background:#fafafa; z-index:1; }
-  #tbl col.col-no { width:50px; } #tbl col.col-no2 { width:60px; }
-  #tbl col.col-team { width:90px; } #tbl col.col-vendor { width:130px; }
-  #tbl col.col-worktype { width:170px; } #tbl col.col-memo { width:320px; }
-  #tbl col.col-doc { width:120px; } #tbl col.col-link { width:150px; }
-  #tbl col.col-business { width:160px; }
-  .memo-input { width:100%; min-height:48px; resize:vertical; padding:5px 7px; border:1px solid #d8dadd; border-radius:6px; font-size:13px; font-family:inherit; line-height:1.4; box-sizing:border-box; }
-  .worktype-select { width:100%; padding:5px 6px; border:1px solid #d8dadd; border-radius:6px; font-size:13px; box-sizing:border-box; }
+  #tbl th, #tbl td { border-bottom:1px solid #eee; padding:5px 6px; font-size:12.5px; vertical-align:top; }
+  #tbl th { position:sticky; top:0; background:#f4f5f7; z-index:1; font-size:12px; color:#444; padding:8px 6px; text-align:left; }
+  #tbl tbody tr:nth-child(even) { background:#fafbfc; }
+  #tbl tbody tr:hover { background:#f0f4ff; }
+  #tbl td { color:#333; }
+  #tbl col.col-no { width:32px; } #tbl col.col-no2 { width:42px; }
+  #tbl col.col-team { width:62px; } #tbl col.col-vendor { width:100px; }
+  #tbl col.col-worktype { width:150px; } #tbl col.col-memo { width:280px; }
+  #tbl col.col-doc { width:92px; } #tbl col.col-link { width:78px; }
+  #tbl col.col-business { width:130px; }
+  #tbl td.ellipsis { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .memo-input { width:100%; min-height:42px; resize:vertical; padding:4px 6px; border:1px solid #d8dadd; border-radius:6px; font-size:12.5px; font-family:inherit; line-height:1.4; box-sizing:border-box; }
+  .worktype-select { width:100%; padding:4px 5px; border:1px solid #d8dadd; border-radius:6px; font-size:12.5px; box-sizing:border-box; }
+  .doc-cell { display:flex; flex-direction:column; align-items:flex-start; gap:2px; }
+  .doc-cell .tag { white-space:nowrap; }
+  .doc-actions { display:flex; gap:4px; flex-wrap:wrap; }
+  .doc-actions button.ghost { padding:0; font-size:11px; }
+  .link-cell { display:flex; flex-direction:column; gap:2px; }
+  .link-cell button.ghost { padding:0; font-size:11px; text-align:left; }
 </style>
 </head>
 <body>
@@ -178,7 +188,10 @@ function renderSummary() {
 function badge(ok, needed, id, docType) {
   if (!needed) return '<span style="color:#bbb">해당없음</span>';
   if (!ok) return '<span class="tag pending">대기</span>';
-  return `<span class="tag done">완료</span> <button class="ghost" onclick="printDoc('${id}','${docType}')">🖨️ 인쇄</button> <button class="ghost" style="color:#c0392b;border-color:#c0392b;" onclick="resetSubmission('${id}','${docType}')">삭제</button>`;
+  return `<div class="doc-cell"><span class="tag done">완료</span><div class="doc-actions">
+    <button class="ghost" onclick="printDoc('${id}','${docType}')">🖨️인쇄</button>
+    <button class="ghost" style="color:#c0392b;" onclick="resetSubmission('${id}','${docType}')">삭제</button>
+  </div></div>`;
 }
 
 function printDoc(id, docType) {
@@ -217,9 +230,9 @@ function renderTable() {
       tr.innerHTML = `
         <td>${idx + 1}</td>
         <td>${r.no ?? ''}</td>
-        <td>${r.team ?? ''}</td>
-        <td>${r.business_name ?? ''}</td>
-        <td>${r.vendor_name ?? ''}</td>
+        <td class="ellipsis" title="${(r.team ?? '').replace(/"/g, '&quot;')}">${r.team ?? ''}</td>
+        <td class="ellipsis" title="${(r.business_name ?? '').replace(/"/g, '&quot;')}">${r.business_name ?? ''}</td>
+        <td class="ellipsis" title="${(r.vendor_name ?? '').replace(/"/g, '&quot;')}">${r.vendor_name ?? ''}</td>
         <td>
           <textarea class="memo-input" onblur="onMemoBlur('${r.id}', this.value)">${(r.memo ?? '').replace(/</g, '&lt;')}</textarea>
         </td>
@@ -235,10 +248,12 @@ function renderTable() {
         <td>${badge(!!r.vendor_eval_submitted_at, r.needs_vendor_eval, r.id, 'eval')}</td>
         <td>${badge(!!r.safety_plan_submitted_at, r.needs_safety_plan, r.id, 'plan')}</td>
         <td>
-          <button class="ghost" onclick="copyLink('vendor','${r.vendor_token}')">업체</button>
-          <button class="ghost" onclick="copyLink('team','${r.team_token}')">팀</button>
-          <button class="ghost" onclick="copyLink('finance','${r.finance_token}')">재무</button>
-          <button class="ghost" style="color:#c0392b;border-color:#c0392b;" onclick="deleteContract('${r.id}','${(r.vendor_name ?? '').replace(/'/g, "\\'")}')">삭제</button>
+          <div class="link-cell">
+            <button class="ghost" onclick="copyLink('vendor','${r.vendor_token}')">업체 링크</button>
+            <button class="ghost" onclick="copyLink('team','${r.team_token}')">팀 링크</button>
+            <button class="ghost" onclick="copyLink('finance','${r.finance_token}')">재무 링크</button>
+            <button class="ghost" style="color:#c0392b;" onclick="deleteContract('${r.id}','${(r.vendor_name ?? '').replace(/'/g, "\\'")}')">행 삭제</button>
+          </div>
         </td>
       `;
       tbody.appendChild(tr);
