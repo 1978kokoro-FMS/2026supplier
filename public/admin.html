@@ -48,12 +48,12 @@
       <table id="tbl">
         <colgroup>
           <col class="col-no"><col class="col-no2"><col class="col-team"><col class="col-business">
-          <col class="col-vendor"><col class="col-worktype"><col class="col-memo">
+          <col class="col-vendor"><col class="col-memo"><col class="col-worktype">
           <col class="col-doc"><col class="col-doc"><col class="col-doc"><col class="col-doc"><col class="col-doc">
           <col class="col-link">
         </colgroup>
         <thead><tr>
-        <th>순번</th><th>No</th><th>담당팀</th><th>사업명</th><th>업체명</th><th>작업유형</th><th>대표 적요(memo)</th>
+        <th>순번</th><th>No</th><th>담당팀</th><th>사업명</th><th>업체명</th><th>작업내용</th><th>작업유형</th>
         <th>위험성평가</th><th>준수서약서</th><th>안전작업허가서</th><th>적격평가표</th><th>안전보건계획서</th>
         <th>링크</th>
       </tr></thead><tbody></tbody></table>
@@ -205,13 +205,13 @@ function renderTable() {
         <td>${r.business_name ?? ''}</td>
         <td>${r.vendor_name ?? ''}</td>
         <td>
+          <textarea class="memo-input" onblur="onMemoBlur('${r.id}', this.value)">${(r.memo ?? '').replace(/</g, '&lt;')}</textarea>
+        </td>
+        <td>
           <select class="worktype-select" onchange="onWorkTypeChange('${r.id}', this.value)">
             ${(WORK_TYPES.includes(r.work_type) ? WORK_TYPES : [r.work_type, ...WORK_TYPES].filter(Boolean))
               .map(t => `<option value="${t}" ${r.work_type === t ? 'selected' : ''}>${t}</option>`).join('')}
           </select>
-        </td>
-        <td>
-          <textarea class="memo-input" onblur="onMemoBlur('${r.id}', this.value)">${(r.memo ?? '').replace(/</g, '&lt;')}</textarea>
         </td>
         <td>${badge(!!r.risk_assessment_submitted_at, r.needs_risk_assessment, r.id, 'risk')}</td>
         <td>${badge(!!r.pledge_submitted_at, r.needs_pledge, r.id, 'pledge')}</td>
