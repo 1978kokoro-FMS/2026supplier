@@ -22,7 +22,7 @@
   #tbl col.col-team { width:62px; } #tbl col.col-vendor { width:100px; }
   #tbl col.col-worktype { width:150px; } #tbl col.col-memo { width:280px; }
   #tbl col.col-doc { width:92px; } #tbl col.col-link { width:78px; }
-  #tbl col.col-business { width:130px; }
+  #tbl col.col-business { width:130px; } #tbl col.col-date { width:80px; }
   #tbl td.ellipsis { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .memo-input { width:100%; min-height:42px; resize:vertical; padding:4px 6px; border:1px solid #d8dadd; border-radius:6px; font-size:12.5px; font-family:inherit; line-height:1.4; box-sizing:border-box; }
   .worktype-select { width:100%; padding:4px 5px; border:1px solid #d8dadd; border-radius:6px; font-size:12.5px; box-sizing:border-box; }
@@ -59,12 +59,12 @@
       <table id="tbl">
         <colgroup>
           <col class="col-no"><col class="col-no2"><col class="col-team"><col class="col-business">
-          <col class="col-vendor"><col class="col-memo"><col class="col-worktype">
+          <col class="col-vendor"><col class="col-date"><col class="col-memo"><col class="col-worktype">
           <col class="col-doc"><col class="col-doc"><col class="col-doc"><col class="col-doc"><col class="col-doc">
           <col class="col-link">
         </colgroup>
         <thead><tr>
-        <th>순번</th><th>No</th><th>담당팀</th><th>사업명</th><th>업체명</th><th>작업내용</th><th>작업유형</th>
+        <th>순번</th><th>No</th><th>담당팀</th><th>사업명</th><th>업체명</th><th>계약일자</th><th>작업내용</th><th>작업유형</th>
         <th>위험성평가</th><th>준수서약서</th><th>안전작업허가서</th><th>적격평가표</th><th>안전보건계획서</th>
         <th title="버튼을 누르면 제출 링크가 클립보드에 복사됩니다. 복사된 링크를 주소창에 붙여넣으면 로그인 없이 바로 서류를 작성/제출할 수 있습니다.">링크 ⓘ</th>
       </tr></thead><tbody></tbody></table>
@@ -254,6 +254,7 @@ function renderTable() {
         <td class="ellipsis" title="${(r.team ?? '').replace(/"/g, '&quot;')}">${r.team ?? ''}</td>
         <td class="ellipsis" title="${(r.business_name ?? '').replace(/"/g, '&quot;')}">${r.business_name ?? ''}</td>
         <td class="ellipsis" title="${(r.vendor_name ?? '').replace(/"/g, '&quot;')}">${r.vendor_name ?? ''}</td>
+        <td>${r.contract_date ?? ''}</td>
         <td>
           <textarea class="memo-input" onblur="onMemoBlur('${r.id}', this.value)">${(r.memo ?? '').replace(/</g, '&lt;')}</textarea>
         </td>
