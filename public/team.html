@@ -263,14 +263,41 @@ async function submitPermitFile(e) {
   const form = e.target;
   const file = form.file.files[0];
   if (!file) { alert('파일을 첨부해주세요.'); return; }
-  const fd = new FormData();
-  fd.append('file', file);
-  fd.append('data', JSON.stringify({ mode: 'file', period: form.period.value }));
   const btn = form.querySelector('button');
   btn.disabled = true; btn.textContent = '제출 중...';
-  const res = await fetch(`/api/team/${token}/permit`, { method: 'POST', body: fd });
-  if (res.ok) { alert('안전작업허가서가 제출되었습니다.'); location.reload(); }
-  else { alert('제출에 실패했습니다.'); btn.disabled = false; btn.textContent = '안전작업허가서 제출'; }
+  try {
+    // 큰 파일은 서버(Vercel 함수)를 거치지 않고 Supabase Storage로 직접 업로드한다.
+    const ticketRes = await fetch(`/api/team/${token}/permit/upload-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name }),
+    });
+    if (!ticketRes.ok) throw new Error('upload-url 발급 실패');
+    const ticket = await ticketRes.json();
+
+    const putRes = await fetch(ticket.signedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      body: file,
+    });
+    if (!putRes.ok) throw new Error('파일 업로드 실패');
+
+    const res = await fetch(`/api/team/${token}/permit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        data: { mode: 'file', period: form.period.value },
+        storage_path: ticket.path,
+      }),
+    });
+    if (!res.ok) throw new Error('제출 실패');
+
+    alert('안전작업허가서가 제출되었습니다.');
+    location.reload();
+  } catch (err) {
+    alert('제출에 실패했습니다.');
+    btn.disabled = false; btn.textContent = '안전작업허가서 제출';
+  }
 }
 
 async function submitPermitDirect(e) {

@@ -3,7 +3,7 @@ const path = require('path');
 const express = require('express');
 const multer = require('multer');
 const { supabase } = require('./supabase');
-const { uploadBuffer } = require('./storage');
+const { uploadBuffer, createUploadTicket, publicUrlFor } = require('./storage');
 
 const app = express();
 
@@ -29,6 +29,27 @@ app.get('/api/vendor/:token', async (req, res) => {
   res.json(publicRow(data));
 });
 
+// 대용량 파일 업로드용: 브라우저가 Supabase Storage에 직접 업로드할 서명된 URL 발급
+// (Vercel 서버리스 함수는 요청 본문이 4.5MB를 넘으면 413으로 거부하므로 파일을 함수로 보내지 않는다)
+app.post('/api/vendor/:token/risk-assessment/upload-url', async (req, res) => {
+  const { data: row } = await supabase
+    .from('h1_2026_contracts')
+    .select('id')
+    .eq('vendor_token', req.params.token)
+    .single();
+  if (!row) return res.status(404).json({ error: '유효하지 않은 링크입니다.' });
+
+  const filename = req.body && req.body.filename;
+  if (!filename) return res.status(400).json({ error: '파일명이 필요합니다.' });
+
+  try {
+    const ticket = await createUploadTicket(filename);
+    res.json(ticket);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/vendor/:token/risk-assessment', upload.single('file'), async (req, res) => {
   const { data: row } = await supabase
     .from('h1_2026_contracts')
@@ -37,11 +58,13 @@ app.post('/api/vendor/:token/risk-assessment', upload.single('file'), async (req
     .single();
   if (!row) return res.status(404).json({ error: '유효하지 않은 링크입니다.' });
 
+  const rawData = req.body.data;
   const update = {
-    risk_assessment_data: req.body.data ? JSON.parse(req.body.data) : null,
+    risk_assessment_data: rawData ? (typeof rawData === 'string' ? JSON.parse(rawData) : rawData) : null,
     risk_assessment_submitted_at: new Date().toISOString(),
   };
   if (req.file) update.risk_assessment_file = await uploadBuffer(req.file.buffer, req.file.originalname, req.file.mimetype);
+  else if (req.body.storage_path) update.risk_assessment_file = publicUrlFor(req.body.storage_path);
   if (req.body.signature) update.risk_assessment_signature = req.body.signature;
 
   const { error } = await supabase.from('h1_2026_contracts').update(update).eq('id', row.id);
@@ -84,6 +107,26 @@ app.get('/api/team/:token', async (req, res) => {
   res.json(publicRow(data));
 });
 
+// 대용량 파일 업로드용: 브라우저가 Supabase Storage에 직접 업로드할 서명된 URL 발급
+app.post('/api/team/:token/permit/upload-url', async (req, res) => {
+  const { data: row } = await supabase
+    .from('h1_2026_contracts')
+    .select('id')
+    .eq('team_token', req.params.token)
+    .single();
+  if (!row) return res.status(404).json({ error: '유효하지 않은 링크입니다.' });
+
+  const filename = req.body && req.body.filename;
+  if (!filename) return res.status(400).json({ error: '파일명이 필요합니다.' });
+
+  try {
+    const ticket = await createUploadTicket(filename);
+    res.json(ticket);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/team/:token/permit', upload.single('file'), async (req, res) => {
   const { data: row } = await supabase
     .from('h1_2026_contracts')
@@ -92,11 +135,13 @@ app.post('/api/team/:token/permit', upload.single('file'), async (req, res) => {
     .single();
   if (!row) return res.status(404).json({ error: '유효하지 않은 링크입니다.' });
 
+  const rawData = req.body.data;
   const update = {
-    permit_data: req.body.data ? JSON.parse(req.body.data) : null,
+    permit_data: rawData ? (typeof rawData === 'string' ? JSON.parse(rawData) : rawData) : null,
     permit_submitted_at: new Date().toISOString(),
   };
   if (req.file) update.permit_file = await uploadBuffer(req.file.buffer, req.file.originalname, req.file.mimetype);
+  else if (req.body.storage_path) update.permit_file = publicUrlFor(req.body.storage_path);
   if (req.body.supervisor_signature) update.permit_supervisor_signature = req.body.supervisor_signature;
   if (req.body.facility_signature) update.permit_facility_signature = req.body.facility_signature;
   if (req.body.worker_signature) update.permit_worker_signature = req.body.worker_signature;
@@ -139,6 +184,27 @@ app.get('/api/finance/:token', async (req, res) => {
   res.json(publicRow(data));
 });
 
+// 대용량 파일 업로드용: 브라우저가 Supabase Storage에 직접 업로드할 서명된 URL 발급
+// (Vercel 서버리스 함수는 요청 본문이 4.5MB를 넘으면 413으로 거부하므로 파일을 함수로 보내지 않는다)
+app.post('/api/finance/:token/safety-plan/upload-url', async (req, res) => {
+  const { data: row } = await supabase
+    .from('h1_2026_contracts')
+    .select('id')
+    .eq('finance_token', req.params.token)
+    .single();
+  if (!row) return res.status(404).json({ error: '유효하지 않은 링크입니다.' });
+
+  const filename = req.body && req.body.filename;
+  if (!filename) return res.status(400).json({ error: '파일명이 필요합니다.' });
+
+  try {
+    const ticket = await createUploadTicket(filename);
+    res.json(ticket);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/finance/:token/safety-plan', upload.single('file'), async (req, res) => {
   const { data: row } = await supabase
     .from('h1_2026_contracts')
@@ -146,12 +212,20 @@ app.post('/api/finance/:token/safety-plan', upload.single('file'), async (req, r
     .eq('finance_token', req.params.token)
     .single();
   if (!row) return res.status(404).json({ error: '유효하지 않은 링크입니다.' });
-  if (!req.file) return res.status(400).json({ error: '파일을 첨부해주세요.' });
+
+  let fileUrl;
+  if (req.file) {
+    fileUrl = await uploadBuffer(req.file.buffer, req.file.originalname, req.file.mimetype);
+  } else if (req.body && req.body.storage_path) {
+    fileUrl = publicUrlFor(req.body.storage_path);
+  } else {
+    return res.status(400).json({ error: '파일을 첨부해주세요.' });
+  }
 
   const { error } = await supabase
     .from('h1_2026_contracts')
     .update({
-      safety_plan_file: await uploadBuffer(req.file.buffer, req.file.originalname, req.file.mimetype),
+      safety_plan_file: fileUrl,
       safety_plan_submitted_at: new Date().toISOString(),
     })
     .eq('id', row.id);
