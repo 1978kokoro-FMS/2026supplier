@@ -21,7 +21,7 @@
   #tbl col.col-no { width:32px; } #tbl col.col-no2 { width:42px; }
   #tbl col.col-team { width:62px; } #tbl col.col-vendor { width:100px; }
   #tbl col.col-worktype { width:150px; } #tbl col.col-memo { width:280px; }
-  #tbl col.col-doc { width:92px; } #tbl col.col-link { width:78px; }
+  #tbl col.col-doc { width:92px; } #tbl col.col-link { width:104px; }
   #tbl col.col-business { width:130px; } #tbl col.col-date { width:80px; }
   #tbl td.ellipsis { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .memo-input { width:100%; min-height:42px; resize:vertical; padding:4px 6px; border:1px solid #d8dadd; border-radius:6px; font-size:12.5px; font-family:inherit; line-height:1.4; box-sizing:border-box; }
@@ -31,7 +31,11 @@
   .doc-actions { display:flex; gap:4px; flex-wrap:wrap; }
   .doc-actions button.ghost { padding:0; font-size:11px; }
   .link-cell { display:flex; flex-direction:column; gap:2px; }
+  .link-row { display:flex; align-items:center; gap:3px; }
+  .link-row .link-label { font-size:11px; width:26px; flex:none; }
   .link-cell button.ghost { padding:0; font-size:11px; text-align:left; }
+  .link-row button.icon-btn { padding:0 3px; font-size:11px; line-height:1.5; border:1px solid #d8dadd; border-radius:4px; background:#fff; cursor:pointer; }
+  .link-row button.icon-btn:hover { background:#f0f4ff; }
 </style>
 </head>
 <body>
@@ -271,9 +275,21 @@ function renderTable() {
         <td>${badge(!!r.safety_plan_submitted_at, r.needs_safety_plan, r.id, 'plan')}</td>
         <td>
           <div class="link-cell">
-            <button class="ghost" title="업체가 위험성평가/준수서약서를 제출하는 링크입니다. 클릭하면 업체용 제출 링크가 복사됩니다. 주소창에 붙여넣으면 제출 사이트로 연결됩니다." onclick="copyLink('vendor','${r.vendor_token}')">업체 링크</button>
-            <button class="ghost" title="발주담당팀이 안전작업허가서/적격평가표를 제출하는 링크입니다. 클릭하면 발주담당팀용 제출 링크가 복사됩니다. 주소창에 붙여넣으면 제출 사이트로 연결됩니다." onclick="copyLink('team','${r.team_token}')">팀 링크</button>
-            <button class="ghost" title="재무회계팀이 안전보건관리계획서를 제출하는 링크입니다. 클릭하면 재무회계팀용 제출 링크가 복사됩니다. 주소창에 붙여넣으면 제출 사이트로 연결됩니다." onclick="copyLink('finance','${r.finance_token}')">재무 링크</button>
+            <div class="link-row">
+              <span class="link-label">업체</span>
+              <button class="icon-btn" title="업체용 제출 링크를 클립보드에 복사합니다." onclick="copyLink('vendor','${r.vendor_token}')">복사</button>
+              <button class="icon-btn" title="업체용 제출 페이지를 새 탭에서 엽니다." onclick="openLink('vendor','${r.vendor_token}')">열기</button>
+            </div>
+            <div class="link-row">
+              <span class="link-label">팀</span>
+              <button class="icon-btn" title="발주담당팀용 제출 링크를 클립보드에 복사합니다." onclick="copyLink('team','${r.team_token}')">복사</button>
+              <button class="icon-btn" title="발주담당팀용 제출 페이지를 새 탭에서 엽니다." onclick="openLink('team','${r.team_token}')">열기</button>
+            </div>
+            <div class="link-row">
+              <span class="link-label">재무</span>
+              <button class="icon-btn" title="재무회계팀용 제출 링크를 클립보드에 복사합니다." onclick="copyLink('finance','${r.finance_token}')">복사</button>
+              <button class="icon-btn" title="재무회계팀용 제출 페이지를 새 탭에서 엽니다." onclick="openLink('finance','${r.finance_token}')">열기</button>
+            </div>
           </div>
         </td>
       `;
@@ -285,6 +301,11 @@ function copyLink(type, token) {
   const url = `${location.origin}/${type}.html?t=${token}`;
   navigator.clipboard.writeText(url);
   alert('링크가 복사되었습니다:\n' + url);
+}
+
+function openLink(type, token) {
+  const url = `${location.origin}/${type}.html?t=${token}`;
+  window.open(url, '_blank');
 }
 
 </script>
