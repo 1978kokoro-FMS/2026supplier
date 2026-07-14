@@ -31,9 +31,10 @@ function createSignaturePad(canvas) {
   canvas.addEventListener('mousedown', start);
   canvas.addEventListener('mousemove', move);
   canvas.addEventListener('mouseup', end);
-  canvas.addEventListener('touchstart', start);
-  canvas.addEventListener('touchmove', move);
-  canvas.addEventListener('touchend', end);
+  canvas.addEventListener('touchstart', start, { passive: false });
+  canvas.addEventListener('touchmove', move, { passive: false });
+  canvas.addEventListener('touchend', end, { passive: false });
+  canvas.addEventListener('touchcancel', end, { passive: false });
 
   return {
     clear: () => ctx.clearRect(0, 0, canvas.width, canvas.height),

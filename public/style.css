@@ -22,7 +22,7 @@ h1 { font-size: 18px; margin: 0 0 4px; }
   width: 100%; padding: 9px 10px; border: 1px solid #d8dadd; border-radius: 8px; font-size: 14px;
 }
 .req { color: #e0473e; }
-canvas.sig { border: 2px dashed #ccc; border-radius: 10px; width: 100%; height: 150px; touch-action: none; background: #fff; }
+canvas.sig { border: 2px dashed #ccc; border-radius: 10px; width: 100%; height: 150px; touch-action: none; overscroll-behavior: none; background: #fff; }
 button {
   background: #2563eb; color: #fff; border: none; border-radius: 8px;
   padding: 11px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
